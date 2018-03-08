@@ -90,15 +90,16 @@ public class WsdGraph extends SimpleWeightedGraph<WsdVertex, Integer> {
 	}
 	
 	public double distance(WsdVertex A, WsdVertex B) {
-		// TODO: Implement dijkstra here
+		// TODO: Implement dijkstra here?
 		// Have to return a big number (or a negative one) if path doesn't exists or nodes doesn't exists
 		if (A == null || B == null) {
-			return -2;
+			return -1;
 		}
-		// Compute path by # of edges or by weights?
-		
+		// Compute path by # of edges or by edge weights?
 		if (this.getEdge(A, B) != null) {
-			return 1;
+			int edgeId = this.getEdge(A, B);
+			// Here return edge weight
+			return this.getEdgeWeight(edgeId);
 		}
 		return -1;
 	}

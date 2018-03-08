@@ -295,7 +295,7 @@ public class WsdExecutor {
 		
 		WsdGraph graph = new WsdGraph();
 		// Support graph on which we compute vertex centrality
-		WsdGraph supportGraph = new WsdGraph();
+		//WsdGraph supportGraph = new WsdGraph();
 		
 		//Initialize the graph creating nodes
 		Iterator<Map.Entry<String, ArrayList<String[]>>> it_p_lwip = pos_lemmaWordIndexParams.entrySet().iterator();
@@ -315,25 +315,26 @@ public class WsdExecutor {
 		    	int sentenceIndex = Integer.parseInt(lemmaWordIndexParams[2]);
 		    	this.createNodes(graph, sentenceIndex, searchTerm, originalWord, posTag, lemmaWord, params);
 		    	// Add nodes on support graph
-		    	this.createNodes(supportGraph, sentenceIndex, searchTerm, originalWord, posTag, lemmaWord, params);
+		    	//this.createNodes(supportGraph, sentenceIndex, searchTerm, originalWord, posTag, lemmaWord, params);
 		    	
 		    	//if the lemma is different from the original word, search senses for both of them
 		    	if(!searchTerm.equalsIgnoreCase(originalWord)){
 		    		this.createNodes(graph, sentenceIndex, originalWord, originalWord, posTag, lemmaWord, params);
 		    		// Add nodes on support graph
-		    		this.createNodes(supportGraph, sentenceIndex, originalWord, originalWord, posTag, lemmaWord, params);
+		    		//this.createNodes(supportGraph, sentenceIndex, originalWord, originalWord, posTag, lemmaWord, params);
 		    	}
 		    }
 		    it_p_lwip.remove();
 		    
 		}
 		
-		int depth = 1;
-		this.addSupportNodes(supportGraph, depth);
-		supportGraph.saveToGML("GML/", "supportGraph");
+		//int depth = 1;
+		//this.addSupportNodes(supportGraph, depth);
+		//supportGraph.saveToGML("GML/", "supportGraph");
 		this.createEdges(graph);
 		//this.createEdges(supportGraph);
-		this.computeVertexCentrality(graph);
+		//this.computeInDegVertexCentrality(graph);
+		this.computeKppVertexCentrality(graph);
 		//this.computeVertexCentrality(supportGraph);
 		//this.copyCentrality(supportGraph.getVerticesList(), graph.getVerticesList());
 		return graph;
@@ -388,7 +389,7 @@ public class WsdExecutor {
 		}
 	}
 
-	private void computeVertexCentrality(WsdGraph graph) {
+	private void computeInDegVertexCentrality(WsdGraph graph) {
 		// Weight vertexes by indegree centrality
 		ArrayList<WsdVertex> vertices = graph.getVerticesList();
 		int nVertici = vertices.size();
@@ -396,8 +397,29 @@ public class WsdExecutor {
 			double indegreeCentrality;
 			double indegree = graph.inDegreeOf(vertices.get(i));
 			indegreeCentrality = indegree / nVertici;
-			//System.out.println(indegreeCentrality);
 			graph.getVertex(vertices.get(i).getId()).setCentrality(indegreeCentrality);			
+		}
+		
+	}
+	
+	private void computeKppVertexCentrality(WsdGraph graph) {
+		// Weight vertexes by kpp centrality
+		ArrayList<WsdVertex> vertices = graph.getVerticesList();
+		int nVertici = vertices.size();
+		for (int i = 0; i < nVertici; i++) {
+			double kppCentrality = 0;
+			double distance = 0;
+			for (int j = 0; j < nVertici; j++) {
+				if (i != j) {
+					double distPath = graph.distance(vertices.get(i), vertices.get(j));
+					// Check if path exists (or edge)
+					if (distPath != -1)
+						distance += 1 / distPath;
+				}
+			}
+			if (nVertici > 1)
+				kppCentrality = distance / (nVertici - 1);
+			graph.getVertex(vertices.get(i).getId()).setCentrality(kppCentrality);			
 		}
 		
 	}
@@ -452,7 +474,7 @@ public class WsdExecutor {
 				if( vertices.get(i).getSentenceIndex() != vertices.get(j).getSentenceIndex()){
 					if (vertices.get(i).getSentenceIndex() == -1 || vertices.get(j).getSentenceIndex() == -1) {
 						// Support nodes involved -> don't compute, set edgeweight
-						double edgeWeight = 0.1;
+						double edgeWeight = 1;
 						graph.addEdge(vertices.get(i).getId(), vertices.get(j).getId(), edgeWeight);
 						
 					} else if ( ! ( vertices.get(i).getGlossKey().equalsIgnoreCase(vertices.get(j).getGlossKey()))){
@@ -461,7 +483,7 @@ public class WsdExecutor {
 						
 						//Random r = new Random();
 						//double edgeWeight = r.nextDouble();
-						double edgeWeight = 0.1;
+						double edgeWeight = 1;
 						
 						graph.addEdge(vertices.get(i).getId(), vertices.get(j).getId(), edgeWeight);
 					}
