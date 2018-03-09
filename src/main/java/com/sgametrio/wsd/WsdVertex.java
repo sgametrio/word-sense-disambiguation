@@ -18,14 +18,19 @@ public class WsdVertex {
     private String gloss;
     private String glossKey;
     private String params;
+    private String treeGlossRepr;
     private String[] lemmaWord;
     private IWordID uniqueWordNetID;
     private ArrayList<String> examples;
     private double weight;
-	private double centrality;
+	private double centrality = 0;
+	private double kppCentrality = 0;
+	private double inDegCentrality = 0;
+	private double pageRankCentrality = 0;
 	private boolean support = false;
     
     /**CONSTRUCTOS
+     * @param depTreeRepr 
      * 
      * @param id: vertexId
      * @param word: the word the vertex is representing
@@ -33,12 +38,13 @@ public class WsdVertex {
 	 * @param gloss: word gloss
      * @param examples: a list with the WordNet examples for the gloss
      */
-    public WsdVertex(int id, int sentenceIndex, String searchTerm, String word, String pos, String gloss, String glossKey, String params, String lemma_wordPair[], ArrayList<String> examples, IWordID wordId) {
+    public WsdVertex(int id, int sentenceIndex, String searchTerm, String word, String pos, String gloss, String glossKey, String params, String lemma_wordPair[], ArrayList<String> examples, IWordID wordId, String depTreeRepr) {
         this.id = id;
         this.sentenceIndex = sentenceIndex;
         this.searchTerm = searchTerm;
     	this.word = word;
         this.pos = pos;
+        this.treeGlossRepr = depTreeRepr;
         this.gloss = gloss;
         this.glossKey = glossKey;
         this.params = params;
@@ -54,9 +60,9 @@ public class WsdVertex {
 	 * @param pos: part of speech of the word
 	 * @param gloss: word gloss
      */
-    public WsdVertex(int id, int sentenceIndex, String usedTerm, String word, String pos, String gloss, String glossKey, String params, String lemma_wordPair[], IWordID wordId) {
+    public WsdVertex(int id, int sentenceIndex, String usedTerm, String word, String pos, String gloss, String glossKey, String params, String lemma_wordPair[], IWordID wordId, String depTreeRep) {
         
-    	this(id, sentenceIndex, usedTerm, word, pos, gloss, glossKey, params, lemma_wordPair, new ArrayList<String>(), wordId);
+    	this(id, sentenceIndex, usedTerm, word, pos, gloss, glossKey, params, lemma_wordPair, new ArrayList<String>(), wordId, depTreeRep);
     	
     }
     
@@ -109,6 +115,7 @@ public class WsdVertex {
     			"\nGLOSS_KEY: " + this.getGlossKey() + 
     			"\nPARAMS: " + this.getParams() + 
     			"\nGLOSS: " + this.getGloss() + 
+    			"\nPARSE_TREE: " + this.getTreeGlossRepr() +
     			"\nLEMMA_WORD_PAIR: " + this.getLemmaWord()[0]+" "+this.getLemmaWord()[1];    			
 		for(int i = 0; i < this.getExamples().size(); i++){
 			output += "EXAMPLE_"+(i+1)+": "+ this.getExamples().get(i)+"\n";
@@ -120,6 +127,10 @@ public class WsdVertex {
     
     //GETTER FUNCTIONS
     
+	public String getTreeGlossRepr() {
+		return this.treeGlossRepr;
+	}
+
 	public int getId(){
 		
 		return this.id;
@@ -177,6 +188,21 @@ public class WsdVertex {
 	public void setCentrality(double centrality) {
 		this.centrality = centrality;
 	}
+	public double getKppCentrality() {
+		return this.kppCentrality;
+	}
+	
+	public void setKppCentrality(double centrality) {
+		this.kppCentrality = centrality;
+	}
+	
+	public double getInDegCentrality() {
+		return this.inDegCentrality;
+	}
+	
+	public void setInDegCentrality(double centrality) {
+		this.inDegCentrality = centrality;
+	}
 	
 public String getParams(){
 		
@@ -191,6 +217,14 @@ public String getParams(){
 
 	public boolean getSupport() {
 		return this.support;
+	}
+
+	public void setPageRankCentrality(double pageRankCentrality) {
+		this.pageRankCentrality = pageRankCentrality;		
+	}
+	
+	public double getPageRankCentrality() {
+		return this.pageRankCentrality;		
 	}
 	
 }

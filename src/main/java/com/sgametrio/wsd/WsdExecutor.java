@@ -27,14 +27,19 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 
+import edu.mit.jwi.data.parse.SenseKeyParser;
 import edu.mit.jwi.item.IWord;
 import edu.mit.jwi.item.IWordID;
+import edu.stanford.nlp.trees.Tree;
+
+import com.sgametrio.wsd.KelpAdapter;
 
 public class WsdExecutor {
 	
 	//used for lemmatization
 	private StanfordUtilsAdapter stanfordAdapter = null;  
 	private WordnetAdapter wordnet = null;
+	private KelpAdapter kelp = null;
 	
 	//saving params
 	private String fileName = "senseval3_subTrees";
@@ -50,6 +55,7 @@ public class WsdExecutor {
 	private final String pathToGML = "GML/";
 	
 	//execution params
+	private String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
 	private boolean saveExamples = false;
 	private boolean saveGml = false;
 	private boolean runSolver = false;
@@ -63,6 +69,7 @@ public class WsdExecutor {
 		
 		this.stanfordAdapter = new StanfordUtilsAdapter();
 		this.wordnet = new WordnetAdapter();
+		this.kelp = new KelpAdapter();
 		
 	}
 	
@@ -295,7 +302,7 @@ public class WsdExecutor {
 		
 		WsdGraph graph = new WsdGraph();
 		// Support graph on which we compute vertex centrality
-		//WsdGraph supportGraph = new WsdGraph();
+		WsdGraph supportGraph = new WsdGraph();
 		
 		//Initialize the graph creating nodes
 		Iterator<Map.Entry<String, ArrayList<String[]>>> it_p_lwip = pos_lemmaWordIndexParams.entrySet().iterator();
@@ -315,37 +322,41 @@ public class WsdExecutor {
 		    	int sentenceIndex = Integer.parseInt(lemmaWordIndexParams[2]);
 		    	this.createNodes(graph, sentenceIndex, searchTerm, originalWord, posTag, lemmaWord, params);
 		    	// Add nodes on support graph
-		    	//this.createNodes(supportGraph, sentenceIndex, searchTerm, originalWord, posTag, lemmaWord, params);
+		    	this.createNodes(supportGraph, sentenceIndex, searchTerm, originalWord, posTag, lemmaWord, params);
 		    	
 		    	//if the lemma is different from the original word, search senses for both of them
 		    	if(!searchTerm.equalsIgnoreCase(originalWord)){
 		    		this.createNodes(graph, sentenceIndex, originalWord, originalWord, posTag, lemmaWord, params);
 		    		// Add nodes on support graph
-		    		//this.createNodes(supportGraph, sentenceIndex, originalWord, originalWord, posTag, lemmaWord, params);
+		    		this.createNodes(supportGraph, sentenceIndex, originalWord, originalWord, posTag, lemmaWord, params);
 		    	}
 		    }
 		    it_p_lwip.remove();
 		    
 		}
 		
-		//int depth = 1;
-		//this.addSupportNodes(supportGraph, depth);
-		//supportGraph.saveToGML("GML/", "supportGraph");
+		
 		this.createEdges(graph);
-		//this.createEdges(supportGraph);
-		//this.computeInDegVertexCentrality(graph);
-		this.computeKppVertexCentrality(graph);
-		//this.computeVertexCentrality(supportGraph);
-		//this.copyCentrality(supportGraph.getVerticesList(), graph.getVerticesList());
+		this.createEdges(supportGraph);
+		int depth = 1;
+		this.addSupportNodes(supportGraph, depth);
+		this.computeInDegVertexCentrality(supportGraph);
+		this.computeKppVertexCentrality(supportGraph);
+		//this.computePageRankVertexCentrality(supportGraph, 0.5);
+		supportGraph.saveToGML("GML/", "supportGraph");
+		//this.computeVertexCentrality(graph);
+		this.copyCentrality(supportGraph.getVerticesList(), graph.getVerticesList());
 		return graph;
 		
 	}
-	
-	
+
 	private void copyCentrality(ArrayList<WsdVertex> from, ArrayList<WsdVertex> to) {
 		// nodes present in `from` ArrayList are present in `to` too
 		for (int i = 0; i < to.size(); i++) {
-			to.get(i).setCentrality(from.get(i).getCentrality());			
+			to.get(i).setCentrality(from.get(i).getCentrality());
+			to.get(i).setKppCentrality(from.get(i).getKppCentrality());
+			to.get(i).setInDegCentrality(from.get(i).getInDegCentrality());
+			to.get(i).setPageRankCentrality(from.get(i).getPageRankCentrality());
 		}
 	}
 
@@ -354,38 +365,31 @@ public class WsdExecutor {
 		// For every node add support nodes if node connects each other and dist <= depth
 		if (depth <= 0)
 			return;
-		WsdGraph subGraph = new WsdGraph();
+		
 		ArrayList<WsdVertex> vertexes = graph.getVerticesList();
+		ArrayList<ArrayList<IWord>> vertexesRelatedWords = new ArrayList<ArrayList<IWord>>();
 		for (WsdVertex v : vertexes) {
-			subGraph.addVertex(v);
-			this.depthFirstSearch(graph, v, depth, subGraph);
-			subGraph.removeVertex(v);
-		}
-	}
-
-	private void depthFirstSearch(WsdGraph graph, WsdVertex start, int depth, WsdGraph tempGraph) {
-		if (depth == 0) {
-			return;
-		}
-		// Ricerca depth-first ad un massimo di profondità "depth" in wordnet
-		for (IWord word : this.wordnet.getSynsetWords(start.getWordId())) {
-			// Costruisco un vertice a partire da `word`
+			ArrayList<IWord> vRelatedWords = this.wordnet.getSynsetWords(v.getWordId());
+			vertexesRelatedWords.add(vRelatedWords);
+			System.out.println("Vertice: " + v.getId());
+			System.out.println("|KEY| " + v.getGlossKey() + " |WORD ID| " + v.getWordId().toString());
+			for (IWord word : vRelatedWords) {
+				if (word.getSenseKey().equals(SenseKeyParser.getInstance().parseLine(v.getGlossKey()))) {
+					// Sono la stessa word
+				} else {
+					// Devo capire se ha senso cercare altre parole e in base a che relazione 
+					ArrayList<IWord> vSubRelatedWords = this.wordnet.getRelatedSynsetWords(word.getID());
+					for (IWord subWord : vSubRelatedWords) {
+						System.out.println("      " + subWord.toString() + " |KEY| " + subWord.getSenseKey() + " |WORD ID| " + subWord.getID().toString());
+					}
+				}
+				System.out.println(word.toString() + " |KEY| " + word.getSenseKey() + " |WORD ID| " + word.getID().toString());
+			}
 			
-			// Se trovo una parola che ho già nel grafo metto l'arco
-
-				// Qui dovrei copiare tutto il sottografo che ho creato nel mio grafo iniziale
-				// Verificando ad esempio sentence index e word id
-			
-				// Altrimenti proseguo la ricerca
-				// Crea il vertice di supporto corrispondente alla parola
-				// System.out.println("DEPTH: "+depth+word.toString());
+			for (IWord word : vRelatedWords) {
 				
-				//this.depthFirstSearch(graph, temp, depth-1, tempGraph);
-			this.depthFirstSearch(graph, start, depth-1, tempGraph);
-				
-			
-			/*tempGraph.removeEdge(start, temp);
-			tempGraph.removeVertex(temp);*/
+			}
+			System.out.println();
 		}
 	}
 
@@ -397,7 +401,7 @@ public class WsdExecutor {
 			double indegreeCentrality;
 			double indegree = graph.inDegreeOf(vertices.get(i));
 			indegreeCentrality = indegree / nVertici;
-			graph.getVertex(vertices.get(i).getId()).setCentrality(indegreeCentrality);			
+			graph.getVertex(vertices.get(i).getId()).setInDegCentrality(indegreeCentrality);			
 		}
 		
 	}
@@ -413,17 +417,44 @@ public class WsdExecutor {
 				if (i != j) {
 					double distPath = graph.distance(vertices.get(i), vertices.get(j));
 					// Check if path exists (or edge)
-					if (distPath != -1)
+					if (distPath > 0)
 						distance += 1 / distPath;
 				}
 			}
 			if (nVertici > 1)
 				kppCentrality = distance / (nVertici - 1);
-			graph.getVertex(vertices.get(i).getId()).setCentrality(kppCentrality);			
+			graph.getVertex(vertices.get(i).getId()).setKppCentrality(kppCentrality);			
 		}
-		
 	}
-
+	
+	private void computePageRankVertexCentrality(WsdGraph graph, double alpha) {
+		// Weight vertexes by page rank centrality
+		ArrayList<WsdVertex> vertices = graph.getVerticesList();
+		int nVertici = vertices.size();
+		for (int i = 0; i < nVertici; i++) {
+			double pageRankCentrality = pageRank(graph, vertices.get(i), nVertici, alpha, 5);
+			vertices.get(i).setPageRankCentrality(pageRankCentrality);
+			System.out.println("Vertice " + vertices.get(i).getId() + " pagerank " + vertices.get(i).getPageRankCentrality());
+		}
+	}
+	
+	private double pageRank(WsdGraph graph, WsdVertex v, int nVertici, double alpha, int step) {
+		
+		if (step == 0)
+			return 1 / nVertici;
+		
+		double pagerank = 0;
+		pagerank = (1 - alpha)/nVertici;
+		double sum = 0;
+		for (WsdVertex target : graph.getVerticesList()) {
+			if (graph.getEdge(v, target) != null) {
+				// Esiste l'arco
+				sum += pageRank(graph, target, nVertici, alpha, step-1) / graph.outDegreeOf(target);
+			}
+		}
+		return pagerank + alpha * sum;
+	}
+	
 	/**
 	 * Create and add vertices to the given graph. Vertices represents wordNet glosses for the words of the sentence
 	 * @param graph
@@ -442,7 +473,13 @@ public class WsdExecutor {
 			
 			String[] glossExamples = glossAndSenseKey[0].split("\""); //separates glosses form examples
 			String senseKey = glossAndSenseKey[1];
-
+			//compute dependency trees for the gloss
+			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(glossExamples[0]);
+			if(treeRepresentations.size()>1){
+				//if the gloss is composed by multiple sentences, there could be more dependency tree
+				//in this case a message is given and only the first tree is considered
+				System.out.println("More than one tree representation for a gloss of \""+searchTerm+"\" ("+glossExamples[0]+") computed. Took the first one.");
+			}
 			ArrayList<String> examples = new ArrayList<String>();
 			if(this.saveExamples){//store the examples
 				
@@ -453,7 +490,7 @@ public class WsdExecutor {
 					}
 				}
 			}
-			graph.addVertex(sentenceIndex, searchTerm, originalWord, posTag, glossExamples[0], senseKey, params, lemmaWord, examples, wordId);
+			graph.addVertex(sentenceIndex, searchTerm, originalWord, posTag, glossExamples[0], senseKey, params, lemmaWord, examples, wordId, treeRepresentations.get(0).toString());
 		}
 		
 	}
@@ -480,10 +517,12 @@ public class WsdExecutor {
 					} else if ( ! ( vertices.get(i).getGlossKey().equalsIgnoreCase(vertices.get(j).getGlossKey()))){
 
 						// Compute similarity here
+						double edgeWeight = this.kelp.computeTreeSimilarity(vertices.get(i).getTreeGlossRepr(),
+								vertices.get(j).getTreeGlossRepr(), this.treeKernelType);
 						
 						//Random r = new Random();
 						//double edgeWeight = r.nextDouble();
-						double edgeWeight = 1;
+						//double edgeWeight = 1;
 						
 						graph.addEdge(vertices.get(i).getId(), vertices.get(j).getId(), edgeWeight);
 					}

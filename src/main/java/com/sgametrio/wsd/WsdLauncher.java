@@ -32,7 +32,7 @@ public class WsdLauncher {
 	private static boolean saveExamples = false;
 	private static boolean runSolver = false; //used to create only .gml file
 	private static boolean saveGml = true;
-	private static boolean verbose = false;
+	private static boolean verbose = true;
 	
 	public static void main(String a[]){
 		//sentence to be disambiguated
@@ -157,7 +157,7 @@ public class WsdLauncher {
 				System.out.println("All LOG files have been removed.");
 			}
 		}else{
-			System.out.println("All old files will be removed. Confirm? (Y/N)");
+			/*System.out.println("All old files will be removed. Confirm? (Y/N)");
 			Scanner tastiera = new Scanner(System.in);
 			String response = tastiera.nextLine();
 			tastiera.close();
@@ -176,7 +176,7 @@ public class WsdLauncher {
 				System.out.println("All old files will be kept.");
 			}else{
 				System.out.println("Invalid choice. Files will be kept.");
-			}
+			}*/
 		}
 		
 	}

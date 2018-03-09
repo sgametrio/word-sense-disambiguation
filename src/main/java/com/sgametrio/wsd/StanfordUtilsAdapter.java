@@ -63,5 +63,30 @@ public class StanfordUtilsAdapter {
 		}
 		return pos_lemmaWordIndex;
 	}
+	
+	/**
+	 * Compute the dependency tree/trees for the given sentence/sentences
+	 * @param sentence: sentence for which the dependency tree has to be computed
+	 * @return: a list containing the tree/trees for the input
+	 */
+	public ArrayList<Tree> computeDependencyTree(String sentence){
+		
+		// create an empty Annotation just with the given text
+		Annotation annotation = new Annotation(sentence);
+		// run all Annotators on this text
+	    this.pipeline.annotate(annotation);
+		// these are all the sentences in this document
+		// a CoreMap is essentially a Map that uses class objects as keys and has values with custom types
+		List<CoreMap> sentences = annotation.get(SentencesAnnotation.class);
+		ArrayList<Tree> trees = new ArrayList<Tree>();
+		
+		for(CoreMap singleSentence: sentences) {
+		   // this is the parse tree of the current sentence
+		   Tree tree = singleSentence.get(TreeAnnotation.class);
+		   trees.add(tree);
+		 }
+		
+		return trees;
+	}
 
 }

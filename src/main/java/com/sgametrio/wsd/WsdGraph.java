@@ -67,9 +67,9 @@ public class WsdGraph extends SimpleWeightedGraph<WsdVertex, Integer> {
 	 * @param examples: a list with the WordNet examples for the gloss
 	 * @return true when the vertex is added
 	 */
-	public void addVertex(int sentenceIndex, String searchTerm, String originalWord, String pos, String gloss, String glossKey, String params, String lemmaWord[], ArrayList<String> examples, IWordID wordId){
+	public void addVertex(int sentenceIndex, String searchTerm, String originalWord, String pos, String gloss, String glossKey, String params, String lemmaWord[], ArrayList<String> examples, IWordID wordId, String depTreeRep){
 		
-		WsdVertex node = new WsdVertex(progressiveNodeId, sentenceIndex, searchTerm.trim(), originalWord.trim(), pos.trim(), gloss.trim(), glossKey, params, lemmaWord, examples, wordId);
+		WsdVertex node = new WsdVertex(progressiveNodeId, sentenceIndex, searchTerm.trim(), originalWord.trim(), pos.trim(), gloss.trim(), glossKey, params, lemmaWord, examples, wordId, depTreeRep);
 		this.addVertex(node);
 		idToNode.put(progressiveNodeId, node);
 		progressiveNodeId++;
@@ -98,8 +98,11 @@ public class WsdGraph extends SimpleWeightedGraph<WsdVertex, Integer> {
 		// Compute path by # of edges or by edge weights?
 		if (this.getEdge(A, B) != null) {
 			int edgeId = this.getEdge(A, B);
-			// Here return edge weight
-			return this.getEdgeWeight(edgeId);
+			// Here return edge weight 
+			double weight = this.getEdgeWeight(edgeId);
+			if (weight == 0)
+				return 0;
+			return 1 / weight;
 		}
 		return -1;
 	}
@@ -390,6 +393,9 @@ public class WsdGraph extends SimpleWeightedGraph<WsdVertex, Integer> {
 		        gml += "\t\tgloss_key \""+v.getGlossKey()+"\"\n";
 		        gml += "\t\tparams \""+v.getParams()+"\"\n";
 		        gml += "\t\tcentrality \""+v.getCentrality()+"\"\n";
+
+		        gml += "\t\tkpp_centrality \""+v.getKppCentrality()+"\"\n";
+		        gml += "\t\tin_deg_centrality \""+v.getInDegCentrality()+"\"\n";
 		        gml += "\t\tgloss \""+v.getGloss().replaceAll("\"", "")+"\"\n";
 		        gml += "\t\tword_id \""+v.getWordId()+"\"\n";
 		        gml += "\t\tlemma_word_pair \""+v.getLemmaWord()[0]+"-"+v.getLemmaWord()[1]+"\"\n";

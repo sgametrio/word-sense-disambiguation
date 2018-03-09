@@ -14,6 +14,7 @@ import java.util.Map;
 import edu.mit.jwi.Dictionary;
 import edu.mit.jwi.IDictionary;
 import edu.mit.jwi.item.IIndexWord;
+import edu.mit.jwi.item.ISenseKey;
 import edu.mit.jwi.item.ISynset;
 import edu.mit.jwi.item.ISynsetID;
 import edu.mit.jwi.item.IWord;
@@ -142,6 +143,32 @@ public class WordnetAdapter {
 			return ids;
 		}
 		
+		public IWord getWord(ISenseKey senseKey) {
+			IWord word = null;
+			try {
+				dict.open();
+				word = dict.getWord(senseKey);
+				dict.close();
+			} catch(IOException e){
+				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
+				System.err.println(e);
+			}
+			return word;
+		}
+		
+		public IWord getWord(IWordID id) {
+			IWord word = null;
+			try {
+				dict.open();
+				word = dict.getWord(id);
+				dict.close();
+			} catch(IOException e){
+				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
+				System.err.println(e);
+			}
+			return word;
+		}
+		
 		public ArrayList<IWord> getSynsetWords(IWordID wordId) {
 			ArrayList<IWord> words = new ArrayList<IWord>();
 			try {
@@ -158,6 +185,11 @@ public class WordnetAdapter {
 			return words;
 		}
 		
+		/**
+		 * 
+		 * @param wordId
+		 * @return list containing IWords from semantically related synset of wordId synset
+		 */
 		public ArrayList<IWord> getRelatedSynsetWords(IWordID wordId) {
 			ArrayList<IWord> words = new ArrayList<IWord>();
 			try {
