@@ -25,7 +25,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import edu.mit.jwi.data.parse.SenseKeyParser;
 import edu.mit.jwi.item.IWord;
@@ -44,6 +46,8 @@ public class WsdExecutor {
 	//saving params
 	private String fileName = "senseval3_subTrees";
 	private  int progrSaveName = 1;
+	private String fileNameCentrality = "centrality";
+	private  int progrSaveNameCentrality = 1;
 
 	//paths
 	private final String tspSolverHomeDir = "src/main/resources/GLKH-1.0/";
@@ -103,6 +107,11 @@ public class WsdExecutor {
 		if(this.saveGml){
 			graph.saveToGML(this.pathToGML, this.fileName+this.progrSaveName);
 		}
+		
+		this.createResultsDir();
+		// Use centrality to disambiguate senses in a word
+		this.printCentralityDisambiguation(graph);
+		
 		//save to gtsp (NEEDED). The solver and all dependent methods are invoked only if the graph is not empty
 		if(graph.saveToGTSP(this.tspSolverHomeDir+this.tspSolverPathToGTSPLIB, this.fileName+this.progrSaveName)){
 			this.setTSPSolver();
@@ -110,9 +119,7 @@ public class WsdExecutor {
 				if(this.runSolver()){
 					this.generateOutputFile(graph);
 				}
-			}
-			
-			
+			}	
 		}
 		System.out.println(this.progrSaveName);
 		//the following must be the last instruction of this method
@@ -121,6 +128,74 @@ public class WsdExecutor {
 	}
 	
 	
+	private void createResultsDir() {
+		// if the directory  for RESULTS does not exist, create it
+		File resDir = new File("RESULTS");
+		if (!resDir.exists()) {
+			try{
+		    	resDir.mkdir();
+		    } 
+		    catch(SecurityException e){
+		    	System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
+				System.err.println(e);
+		    }        
+		}
+	}
+
+
+	private void printCentralityDisambiguation(WsdGraph graph) {
+		// Map<Sentence Index, Senso corretto> 
+		// Contiene i sensi disambiguati
+		Map<Integer, WsdVertex> disambiguationMap = new HashMap<Integer, WsdVertex>();
+		// Readable results
+		for (WsdVertex v : graph.getVerticesList()) {
+			int sentenceIndex = v.getSentenceIndex();
+			if (sentenceIndex < 0)
+				continue;
+			// KPP centrality for now
+			double vCentrality = v.getKppCentrality();
+			// per ogni sentence index devo scegliere uno e un solo nodo
+			// Se la map contiene un nodo, lo sostituisco solo se ha maggiore centralità
+			if (disambiguationMap.containsKey(sentenceIndex)) {
+				if (disambiguationMap.get(sentenceIndex).getKppCentrality() < vCentrality) {
+					disambiguationMap.put(sentenceIndex, v);
+				}
+			} else {
+				disambiguationMap.put(sentenceIndex, v);
+			}
+		}
+		// Print results
+		this.printMapToFile(disambiguationMap, this.fileNameCentrality, this.evaluation);
+		// results in .key format
+	}
+
+
+	private void printMapToFile(Map<Integer, WsdVertex> disambiguationMap, String fileName, Boolean evaluation) {
+		// print Map ordered by key
+		try {
+			PrintWriter keyFileWriter = new PrintWriter(
+					new FileWriter(this.resultsPath + fileName +this.resultsFileName, true));
+			//sort word by their position in the text
+			SortedSet<Integer> keys = new TreeSet<>(disambiguationMap.keySet());
+			for (Integer key : keys) { 
+			   WsdVertex v = disambiguationMap.get(key);
+			   // String[] wordGloss_KeyGlossParams = {v.getWord(), v.getGlossKey(), v.getGloss(), v.getParams()};
+			   if(evaluation) { //evaluation mode output format
+					if(v.getParams() != null){
+						keyFileWriter.write(v.getParams()+" "+v.getGlossKey()+"\n");
+					}
+				} else { //sentence wsd output format
+					keyFileWriter.write("Disambiguated \""+v.getWord()+"\" as \n\t\t ("+v.getGlossKey()+") \""+v.getGloss()+"\"\n");
+				}
+			}
+			keyFileWriter.close();
+			this.progrSaveNameCentrality++;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+
 	/**
 	 * Eliminate the words having POS not specified in posTags variable
 	 * @param oldMap: the map containing all the word of the sentence divided by POS
@@ -339,11 +414,11 @@ public class WsdExecutor {
 		this.createEdges(graph);
 		this.createEdges(supportGraph);
 		int depth = 1;
-		this.addSupportNodes(supportGraph, depth);
-		this.computeInDegVertexCentrality(supportGraph);
+		//this.addSupportNodes(supportGraph, depth);
+		//this.computeInDegVertexCentrality(supportGraph);
 		this.computeKppVertexCentrality(supportGraph);
 		//this.computePageRankVertexCentrality(supportGraph, 0.5);
-		supportGraph.saveToGML("GML/", "supportGraph");
+		//supportGraph.saveToGML("GML/", "supportGraph");
 		//this.computeVertexCentrality(graph);
 		this.copyCentrality(supportGraph.getVerticesList(), graph.getVerticesList());
 		return graph;
@@ -520,10 +595,6 @@ public class WsdExecutor {
 						double edgeWeight = this.kelp.computeTreeSimilarity(vertices.get(i).getTreeGlossRepr(),
 								vertices.get(j).getTreeGlossRepr(), this.treeKernelType);
 						
-						//Random r = new Random();
-						//double edgeWeight = r.nextDouble();
-						//double edgeWeight = 1;
-						
 						graph.addEdge(vertices.get(i).getId(), vertices.get(j).getId(), edgeWeight);
 					}
 				}
@@ -538,18 +609,6 @@ public class WsdExecutor {
 	 * @param graph
 	 */
 	private void generateOutputFile(WsdGraph graph){
-		
-		// if the directory  for RESULTS does not exist, create it
-		File resDir = new File("RESULTS");
-		if (!resDir.exists()) {
-			try{
-		    	resDir.mkdir();
-		    } 
-		    catch(SecurityException e){
-		    	System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-				System.err.println(e);
-		    }        
-		}
 		
 		PrintWriter log = null;
 		try {
@@ -660,7 +719,7 @@ public class WsdExecutor {
 	public void setFileName(String newFileName){
 		this.fileName = newFileName;
 	}
-	/*public void setTreeKernelType(String kernelType){
+	public void setTreeKernelType(String kernelType){
 		switch(kernelType){
 			case "subTree":
 				this.treeKernelType = kernelType;
@@ -679,5 +738,5 @@ public class WsdExecutor {
 				System.err.println("defined kernelType \""+kernelType+"\" has not been found. Used default "+treeKernelType);
 		}
 		
-	}*/
+	}
 }
