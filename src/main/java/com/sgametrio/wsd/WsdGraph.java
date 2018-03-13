@@ -494,7 +494,7 @@ public class WsdGraph extends SimpleWeightedGraph<WsdVertex, Integer> {
 				writer = new BufferedWriter(new FileWriter(filePath + fileName+".gtsp"));
 				writer.write(matrix);
 				writer.close();
-				//System.out.println("Saved graph to " + filePath + fileName+".gtsp");
+				System.out.println("Saved graph to " + filePath + fileName+".gtsp");
 				return true;
 			} catch (IOException e) {
 				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");

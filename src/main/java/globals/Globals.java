@@ -8,30 +8,38 @@ public class Globals {
 	public static final String wordnetHome = "/usr/local/WordNet-3.0";//path to WordNet home folder
 	public static final String path = wordnetHome + File.separator + "dict";
 	
-	public static final String pathToAll = frameworkFilePath+"ALL/ALL";
-	public static final String pathToSemeval2007 = frameworkFilePath+"semeval2007/semeval2007";
-	public static final String pathToSemeval2013 = frameworkFilePath+"semeval2013/semeval2013";
-	public static final String pathToSemeval2015 = frameworkFilePath+"semeval2015/semeval2015";
-	public static final String pathToSenseval2 = frameworkFilePath+"senseval2/senseval2";
-	public static final String pathToSenseval3 = frameworkFilePath+"senseval3/senseval3";
+	public static final String resultsPath = "RESULTS/";
+	public static final String resultsFileName = "_wsdResults.KEY";
+	
+	public static final String All = "ALL";
+	public static final String Semeval2007 = "semeval2007";
+	public static final String Semeval2013 = "semeval2013";
+	public static final String Semeval2015 = "semeval2015";
+	public static final String Senseval2 = "senseval2";
+	public static final String Senseval3 = "senseval3";
+	// Change this if you want to change evaluation dataset
+	public static final String currentDataset = Senseval3;
+	
+	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
 
 	public static final String dataFileSuffix = ".data.xml";
 	public static final String goldFileSuffix = ".gold.key.txt";
 	
-	// Change this if you want to change evaluation dataset
-	public static final String currentEvaluationPath = pathToAll;
-	
-	public static final String currentGoldFile = currentEvaluationPath + goldFileSuffix;
-	public static final String currentDataFile = currentEvaluationPath + dataFileSuffix;
+	public static final String currentGoldFile = pathToDataset + goldFileSuffix;
+	public static final String currentDataFile = pathToDataset + dataFileSuffix;
+	public static final String myKeyFile = resultsPath + currentDataset + resultsFileName;
 	
 	public static final String tspSolverHomeDir = "src/main/resources/GLKH-1.0/";
-	public static final String tspSolverPathToGTSPLIB = tspSolverHomeDir + "GTSPLIB/";
-	public static final String tspSolverPathToGTOURS = tspSolverHomeDir + "G-TOURS/";
+	public static final String GTSPLIBDirectory = "GTSPLIB/";
+	public static final String GTOURSDirectory = "G-TOURS/";
+	public static final String tspSolverPathToGTSPLIB = tspSolverHomeDir + GTSPLIBDirectory;
+	public static final String tspSolverPathToGTOURS = tspSolverHomeDir + GTOURSDirectory;
 	public static final String tspSolverFileName = "runGLKH";
 	public static final String tspSolverPathFileName = tspSolverHomeDir + tspSolverFileName;
-	public static final String resultsPath = "RESULTS/";
-	public static final String resultsFileName = "_wsdResults.KEY";
+	
 	public static final String gmlPath = "GML/";
 	public static final String gtspPath = tspSolverPathToGTSPLIB;
 	public static final String tourPath = tspSolverPathToGTOURS;
+
+	public static final int runs = 1;
 }

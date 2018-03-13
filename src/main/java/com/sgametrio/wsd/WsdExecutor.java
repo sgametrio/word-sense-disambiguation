@@ -110,7 +110,7 @@ public class WsdExecutor {
 			this.printCentralityDisambiguation(graph, sentences);
 		} else {
 			//save to gtsp (NEEDED). The solver and all dependent methods are invoked only if the graph is not empty
-			if(graph.saveToGTSP(Globals.tspSolverHomeDir+Globals.tspSolverPathToGTSPLIB, this.fileName+this.progrSaveName)){
+			if(graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, this.fileName+this.progrSaveName)){
 				this.setTSPSolver();
 				if(this.getRunSolver()) {
 					if(this.runSolver()){
@@ -164,6 +164,7 @@ public class WsdExecutor {
 			}
 		}
 		// Print results
+		System.out.print("Printing to file.. ");
 		this.printMapToFile(disambiguationMap, this.fileNameCentrality, this.evaluation, sentences);
 		// results in .key format
 	}
@@ -182,7 +183,6 @@ public class WsdExecutor {
 			SortedSet<Integer> keys = new TreeSet<>(disambiguationMap.keySet());
 			for (Integer key : keys) { 
 			   WsdVertex v = disambiguationMap.get(key);
-			   // String[] wordGloss_KeyGlossParams = {v.getWord(), v.getGlossKey(), v.getGloss(), v.getParams()};
 			   if(evaluation) { //evaluation mode output format
 					if(v.getParams() != null){
 						keyFileWriter.write(v.getParams()+" "+v.getGlossKey()+"\n");
@@ -234,6 +234,7 @@ public class WsdExecutor {
 	
 	
 	/**
+	 * Set configuration parameters by dynamically update configuration file
 	 * Change param of TSPSolver main file to set input and output files
 	 */
 	private void setTSPSolver(){
@@ -250,11 +251,15 @@ public class WsdExecutor {
 			//reads from the old file and write on the new one
 			String line;
 			while ((line = oldFileReader.readLine()) != null) {
+				//System.out.println(line);
 				if (line.contains("PROBLEM_FILE")){
-					line = "echo \"PROBLEM_FILE = " + Globals.tspSolverPathToGTSPLIB + this.fileName+this.progrSaveName+".gtsp\" > $par";
+					line = "echo \"PROBLEM_FILE = " + Globals.GTSPLIBDirectory + this.fileName+this.progrSaveName+".gtsp\" > $par";
 				}
 				if (line.contains("OUTPUT_TOUR_FILE")){
-					line = "echo \"OUTPUT_TOUR_FILE = " + Globals.tspSolverPathToGTOURS + this.fileName+this.progrSaveName+".tour\" >> $par";
+					line = "echo \"OUTPUT_TOUR_FILE = " + Globals.GTOURSDirectory + this.fileName+this.progrSaveName+".tour\" >> $par";
+				}
+				if (line.contains("RUNS")) {
+					line = "echo \"RUNS = " + Globals.runs + "\" >> $par";
 				}
 				newFileWriter.write(line+"\n");
 			}
@@ -297,13 +302,13 @@ public class WsdExecutor {
 				solver.setReadable(true);
 				solver.setWritable(true);
 				//command to execute the solver
-				ProcessBuilder process = new ProcessBuilder("./"+Globals.tspSolverPathFileName);
+				ProcessBuilder process = new ProcessBuilder("./" + Globals.tspSolverFileName);
 				process.directory(new File(Globals.tspSolverHomeDir));
 
 				Process p = process.start();
 				//get the error stream
-				/*InputStream is = p.getErrorStream();
-				String errorStream = this.getProcessOutput(is);*/
+				//InputStream is = p.getErrorStream();
+				//String errorStream = this.getProcessOutput(is);
 
 				//if verbose mode is on, prints tsp solver output and errors
 				if(this.verbose){
@@ -355,8 +360,6 @@ public class WsdExecutor {
 			String line = null;
 			
 			while ((line = br.readLine()) != null) {
-				if (this.verbose)
-					System.out.println(line);
 				sb.append(line + System.getProperty("line.separator"));
 			}
 			br.close();

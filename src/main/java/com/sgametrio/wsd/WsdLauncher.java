@@ -21,7 +21,7 @@ public class WsdLauncher {
 	
 	//settings, used to make code clearer, use params in WsdExecutor for development
 	private static boolean saveExamples = false;
-	private static boolean runSolver = false; //used to create only .gml file
+	private static boolean runSolver = true; //used to create only .gml file
 	private static boolean saveGml = true;
 	private static boolean verbose = false;
 	
@@ -36,11 +36,12 @@ public class WsdLauncher {
 				"I took out my contact lenses and put on my glasses.", //glass
 //				"The water, spilled over the tops of these, \"river\" banks during the last flood." //river
 		};
-		boolean centrality = true;
-		launchDisambiguation(saveExamples, saveGml, verbose, runSolver, sentences, centrality);
+		boolean centrality = !runSolver;
+		//launchDisambiguation(saveExamples, saveGml, verbose, runSolver, sentences, centrality);
 		launchDisambiguationEvaluation(saveExamples, false, verbose, runSolver, centrality);
-		//launchEvaluator(Globals.pathToAll + Globals.goldFileSuffix, "RESULTS/all_centrality_wsdResults.KEY");
+		//launchEvaluator(Globals.currentGoldFile, "RESULTS/centrality_wsdResults.KEY");
 		//launchEvaluator(Globals.pathToSenseval3 + Globals.goldFileSuffix, "RESULTS/senseval3_centrality.KEY");
+		//launchEvaluator(Globals.currentGoldFile, Globals.myKeyFile);
 	}
 	
 	/**
