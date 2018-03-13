@@ -15,19 +15,10 @@ import org.w3c.dom.NodeList;
 
 import evaluation.InputExtractor;
 import evaluation.Scorer;
+import globals.Globals;
 
 public class WsdLauncher {
 	
-	public static final String frameworkFilePath = "src/main/resources/evaluation-datasets/";
-	
-	public static final String pathToAllGold = frameworkFilePath+"ALL/ALL.gold.key.txt";
-	public static final String pathToSemeval2007Gold = frameworkFilePath+"semeval2007/semeval2007.gold.key.txt";
-	public static final String pathToSemeval2013Gold = frameworkFilePath+"semeval2013/semeval2013.gold.key.txt";
-	public static final String pathToSemeval2015Gold = frameworkFilePath+"semeval2015/semeval2015.gold.key.txt";
-	public static final String pathToSenseval2Gold = frameworkFilePath+"senseval2/senseval2.gold.key.txt";
-	public static final String pathToSenseval3Gold = frameworkFilePath+"senseval3/senseval3.gold.key.txt";
-
-	private static String currentGoldFile = pathToAllGold;
 	//settings, used to make code clearer, use params in WsdExecutor for development
 	private static boolean saveExamples = false;
 	private static boolean runSolver = false; //used to create only .gml file
@@ -46,10 +37,10 @@ public class WsdLauncher {
 //				"The water, spilled over the tops of these, \"river\" banks during the last flood." //river
 		};
 		boolean centrality = true;
-		//launchDisambiguation(saveExamples, saveGml, verbose, runSolver, sentences, centrality);
-		//launchDisambiguationEvaluation(saveExamples, false, verbose, runSolver, centrality);
-		launchEvaluator(pathToAllGold, "RESULTS/all_centrality_wsdResults.KEY");
-		launchEvaluator(pathToSenseval3Gold, "RESULTS/senseval3_centrality.KEY");
+		launchDisambiguation(saveExamples, saveGml, verbose, runSolver, sentences, centrality);
+		launchDisambiguationEvaluation(saveExamples, false, verbose, runSolver, centrality);
+		//launchEvaluator(Globals.pathToAll + Globals.goldFileSuffix, "RESULTS/all_centrality_wsdResults.KEY");
+		//launchEvaluator(Globals.pathToSenseval3 + Globals.goldFileSuffix, "RESULTS/senseval3_centrality.KEY");
 	}
 	
 	/**
@@ -86,7 +77,7 @@ public class WsdLauncher {
 		try {
 			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-			Document doc = dBuilder.parse(new File(InputExtractor.currentDataFile));
+			Document doc = dBuilder.parse(new File(Globals.currentDataFile));
 			//optional, but recommended
 			doc.getDocumentElement().normalize();
 			//get all sentences in xml file
@@ -101,9 +92,9 @@ public class WsdLauncher {
 			
 			//launch Navigli's evaluation framework script
 			if (centrality) {
-				launchEvaluator(currentGoldFile, wsdExecutor.getResultsPath()+wsdExecutor.getFileNameCentrality()+wsdExecutor.getResultsFileName());
+				launchEvaluator(Globals.currentGoldFile, Globals.resultsPath+wsdExecutor.getFileNameCentrality()+Globals.resultsFileName);
 			} else {
-				launchEvaluator(currentGoldFile, wsdExecutor.getResultsPath()+wsdExecutor.getFileName()+wsdExecutor.getResultsFileName());
+				launchEvaluator(Globals.currentGoldFile, Globals.resultsPath+wsdExecutor.getFileName()+Globals.resultsFileName);
 			}			
 		} catch (Exception e) {
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
@@ -133,9 +124,9 @@ public class WsdLauncher {
 	 * @param ask
 	 */
 	private static void clearOldFiles(WsdExecutor wsd, boolean ask){
-		File gml = new File(wsd.getPathToGML());
-		File gtsp = new File(wsd.getGtspPath());
-		File tour = new File(wsd.getTourPath());
+		File gml = new File(Globals.gmlPath);
+		File gtsp = new File(Globals.gtspPath);
+		File tour = new File(Globals.tourPath);
 		File log = new File("log.txt");
 		if(ask){
 			if(getChoice(gml, "GML")){

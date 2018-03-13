@@ -10,7 +10,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,18 +22,17 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import edu.mit.jwi.data.parse.SenseKeyParser;
 import edu.mit.jwi.item.IWord;
 import edu.mit.jwi.item.IWordID;
 import edu.stanford.nlp.trees.Tree;
 
 import com.sgametrio.wsd.KelpAdapter;
+import globals.Globals;
 
 public class WsdExecutor {
 	
@@ -49,15 +47,6 @@ public class WsdExecutor {
 	private String fileNameCentrality = "centrality";
 	private String fileNameSentences = "sentences";
 	private  int progrSaveNameCentrality = 1;
-
-	//paths
-	private final String tspSolverHomeDir = "src/main/resources/GLKH-1.0/";
-	private final String tspSolverPathToGTSPLIB = "GTSPLIB/";
-	private final String tspSolverPathToGTOURS = "G-TOURS/";
-	private final String tspSolverFileName = "runGLKH";
-	private final String resultsPath = "RESULTS/";
-	private final String resultsFileName = "_wsdResults.KEY";
-	private final String pathToGML = "GML/";
 	
 	//execution params
 	private String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
@@ -109,9 +98,9 @@ public class WsdExecutor {
 		//save gml (optional)
 		if(this.saveGml){
 			if (sentences) {
-				graph.saveToGML(this.pathToGML, this.fileNameSentences+this.progrSaveName);
+				graph.saveToGML(Globals.gmlPath, this.fileNameSentences+this.progrSaveName);
 			} else {
-				graph.saveToGML(this.pathToGML, this.fileName+this.progrSaveName);
+				graph.saveToGML(Globals.gmlPath, this.fileName+this.progrSaveName);
 			}
 		}
 		
@@ -121,7 +110,7 @@ public class WsdExecutor {
 			this.printCentralityDisambiguation(graph, sentences);
 		} else {
 			//save to gtsp (NEEDED). The solver and all dependent methods are invoked only if the graph is not empty
-			if(graph.saveToGTSP(this.tspSolverHomeDir+this.tspSolverPathToGTSPLIB, this.fileName+this.progrSaveName)){
+			if(graph.saveToGTSP(Globals.tspSolverHomeDir+Globals.tspSolverPathToGTSPLIB, this.fileName+this.progrSaveName)){
 				this.setTSPSolver();
 				if(this.getRunSolver()) {
 					if(this.runSolver()){
@@ -185,9 +174,9 @@ public class WsdExecutor {
 		try {
 			PrintWriter keyFileWriter;
 			if (sentences) {
-				keyFileWriter = new PrintWriter(new FileWriter(this.resultsPath + fileName + this.fileNameSentences +this.resultsFileName, true));
+				keyFileWriter = new PrintWriter(new FileWriter(Globals.resultsPath + fileName + this.fileNameSentences +Globals.resultsFileName, true));
 			} else {
-				keyFileWriter = new PrintWriter(new FileWriter(this.resultsPath + fileName +this.resultsFileName, true));
+				keyFileWriter = new PrintWriter(new FileWriter(Globals.resultsPath + fileName +Globals.resultsFileName, true));
 			}
 			//sort word by their position in the text
 			SortedSet<Integer> keys = new TreeSet<>(disambiguationMap.keySet());
@@ -251,21 +240,21 @@ public class WsdExecutor {
 		
 		BufferedReader oldFileReader = null;
 		BufferedWriter newFileWriter = null;
-		String tempFileName = "tmp_"+this.tspSolverFileName;
+		String tempFileName = "tmp_"+Globals.tspSolverFileName;
 		
 		try {
 			
-			oldFileReader = new BufferedReader(new FileReader(this.tspSolverHomeDir+this.tspSolverFileName));
-			newFileWriter = new BufferedWriter(new FileWriter(this.tspSolverHomeDir+tempFileName));
+			oldFileReader = new BufferedReader(new FileReader(Globals.tspSolverPathFileName));
+			newFileWriter = new BufferedWriter(new FileWriter(Globals.tspSolverHomeDir+tempFileName));
 			
 			//reads from the old file and write on the new one
 			String line;
 			while ((line = oldFileReader.readLine()) != null) {
 				if (line.contains("PROBLEM_FILE")){
-					line = "echo \"PROBLEM_FILE = " + this.tspSolverPathToGTSPLIB + this.fileName+this.progrSaveName+".gtsp\" > $par";
+					line = "echo \"PROBLEM_FILE = " + Globals.tspSolverPathToGTSPLIB + this.fileName+this.progrSaveName+".gtsp\" > $par";
 				}
 				if (line.contains("OUTPUT_TOUR_FILE")){
-					line = "echo \"OUTPUT_TOUR_FILE = " + this.tspSolverPathToGTOURS + this.fileName+this.progrSaveName+".tour\" >> $par";
+					line = "echo \"OUTPUT_TOUR_FILE = " + Globals.tspSolverPathToGTOURS + this.fileName+this.progrSaveName+".tour\" >> $par";
 				}
 				newFileWriter.write(line+"\n");
 			}
@@ -274,11 +263,11 @@ public class WsdExecutor {
 			newFileWriter.close();
 			
 			//delete old file
-			File oldFile = new File(this.tspSolverHomeDir+this.tspSolverFileName);
+			File oldFile = new File(Globals.tspSolverPathFileName);
 			oldFile.delete();
 			
 			// And rename tmp file to old file name
-			File newFile = new File(this.tspSolverHomeDir+tempFileName);
+			File newFile = new File(Globals.tspSolverHomeDir+tempFileName);
 			newFile.renameTo(oldFile);
 			
 		}catch(IOException e){
@@ -295,7 +284,7 @@ public class WsdExecutor {
 	 */
 	public boolean runSolver(){
 		
-		File solver = new File(this.tspSolverHomeDir+this.tspSolverFileName);
+		File solver = new File(Globals.tspSolverPathFileName);
 		if (solver.exists()) {
 			try{
 				//Set permissions
@@ -308,8 +297,8 @@ public class WsdExecutor {
 				solver.setReadable(true);
 				solver.setWritable(true);
 				//command to execute the solver
-				ProcessBuilder process = new ProcessBuilder("./"+this.tspSolverFileName);
-				process.directory(new File(this.tspSolverHomeDir));
+				ProcessBuilder process = new ProcessBuilder("./"+Globals.tspSolverPathFileName);
+				process.directory(new File(Globals.tspSolverHomeDir));
 
 				Process p = process.start();
 				//get the error stream
@@ -656,10 +645,10 @@ public class WsdExecutor {
 			
 			//open reader for the tspSolver output file
 			BufferedReader tourFileReader = new BufferedReader(
-					new FileReader(this.tspSolverHomeDir+this.tspSolverPathToGTOURS+this.fileName+this.progrSaveName+".tour"));
+					new FileReader(Globals.tspSolverPathToGTOURS+this.fileName+this.progrSaveName+".tour"));
 			//open writer to write results
 			PrintWriter keyFileWriter = new PrintWriter(
-					new FileWriter(this.resultsPath + this.fileName+this.resultsFileName, true));
+					new FileWriter(Globals.resultsPath + this.fileName+Globals.resultsFileName, true));
 			//sorted map used to order words by their position in the sentence
 			TreeMap<Integer, String[]> sortMap = new TreeMap<Integer, String[]>();
 			String line;
@@ -737,24 +726,11 @@ public class WsdExecutor {
 	public String getFileName(){
 		return this.fileName;
 	}
-	public String getGtspPath(){
-		return this.tspSolverHomeDir+this.tspSolverPathToGTSPLIB;
-	}
-	public String getTourPath(){
-		return this.tspSolverHomeDir+this.tspSolverPathToGTOURS;
-	}
-	public String getPathToGML(){
-		return this.pathToGML;
-	}
-	public String getResultsPath(){
-		return this.resultsPath;
-	}
+	
 	public boolean getRunSolver(){
 		return this.runSolver;
 	}
-	public String getResultsFileName(){
-		return this.resultsFileName;
-	}
+	
 	public void setFileName(String newFileName){
 		this.fileName = newFileName;
 	}
