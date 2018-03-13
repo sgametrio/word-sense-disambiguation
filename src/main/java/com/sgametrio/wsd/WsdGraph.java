@@ -100,9 +100,8 @@ public class WsdGraph extends SimpleWeightedGraph<WsdVertex, Integer> {
 			int edgeId = this.getEdge(A, B);
 			// Here return edge weight 
 			double weight = this.getEdgeWeight(edgeId);
-			if (weight == 0)
-				return 0;
-			return 1 / weight;
+			
+			return weight;
 		}
 		return -1;
 	}

@@ -27,7 +27,7 @@ public class WsdLauncher {
 	public static final String pathToSenseval2Gold = frameworkFilePath+"senseval2/senseval2.gold.key.txt";
 	public static final String pathToSenseval3Gold = frameworkFilePath+"senseval3/senseval3.gold.key.txt";
 
-	private static String currentGoldFile = pathToSenseval3Gold;
+	private static String currentGoldFile = pathToAllGold;
 	//settings, used to make code clearer, use params in WsdExecutor for development
 	private static boolean saveExamples = false;
 	private static boolean runSolver = false; //used to create only .gml file
@@ -41,14 +41,15 @@ public class WsdLauncher {
 //				"Dan speaks three languages, is good a DIY, and he can cook.",
 //				"He made such a terrible face that the children ran away.",
 ////				ambiguous sentences
-				"I saw him sawing wood with a saw", //saw
-//				"I took out my contact lenses and put on my glasses.", //glass
+//				"I saw him sawing wood with a saw", //saw
+				"I took out my contact lenses and put on my glasses.", //glass
 //				"The water, spilled over the tops of these, \"river\" banks during the last flood." //river
 		};
-		//launchDisambiguation(saveExamples, saveGml, verbose, runSolver, sentences);
 		boolean centrality = true;
-		launchDisambiguationEvaluation(saveExamples, saveGml, verbose, runSolver, centrality);
-		
+		//launchDisambiguation(saveExamples, saveGml, verbose, runSolver, sentences, centrality);
+		//launchDisambiguationEvaluation(saveExamples, false, verbose, runSolver, centrality);
+		launchEvaluator(pathToAllGold, "RESULTS/all_centrality_wsdResults.KEY");
+		launchEvaluator(pathToSenseval3Gold, "RESULTS/senseval3_centrality.KEY");
 	}
 	
 	/**
@@ -58,12 +59,12 @@ public class WsdLauncher {
 	 * @param verbose
 	 * @param sentences
 	 */
-	private static void launchDisambiguation(boolean saveExamples, boolean saveGml, boolean verbose, boolean runSolver, String[] sentences){
+	private static void launchDisambiguation(boolean saveExamples, boolean saveGml, boolean verbose, boolean runSolver, String[] sentences, boolean centrality){
 		
 		WsdExecutor wsdExecutor = createWsdExecutor(saveExamples, saveGml, verbose, false, runSolver);
 		clearOldFiles(wsdExecutor, false);
 		for(String sentence : sentences){
-			wsdExecutor.performDisambiguation(sentence);	
+			wsdExecutor.performDisambiguation(sentence, centrality);	
 		}
 		System.out.print("Finished");
 	}
@@ -95,12 +96,12 @@ public class WsdLauncher {
 				Node sentence = allSentences.item(sentIndex);
 				//get the sentence in a format valid to be given to performDisambiguation method
 				HashMap<String, ArrayList<String[]>> sentenceMap = InputExtractor.extractInput(sentence);
-				wsdExecutor.performDisambiguation(sentenceMap);
+				wsdExecutor.performDisambiguation(sentenceMap, centrality, false);
 			}
 			
 			//launch Navigli's evaluation framework script
 			if (centrality) {
-				launchEvaluator(currentGoldFile, wsdExecutor.getResultsPath()+wsdExecutor.getFileName()+wsdExecutor.getResultsFileName());
+				launchEvaluator(currentGoldFile, wsdExecutor.getResultsPath()+wsdExecutor.getFileNameCentrality()+wsdExecutor.getResultsFileName());
 			} else {
 				launchEvaluator(currentGoldFile, wsdExecutor.getResultsPath()+wsdExecutor.getFileName()+wsdExecutor.getResultsFileName());
 			}			

@@ -47,6 +47,7 @@ public class WsdExecutor {
 	private String fileName = "senseval3_subTrees";
 	private  int progrSaveName = 1;
 	private String fileNameCentrality = "centrality";
+	private String fileNameSentences = "sentences";
 	private  int progrSaveNameCentrality = 1;
 
 	//paths
@@ -64,6 +65,7 @@ public class WsdExecutor {
 	private boolean saveGml = false;
 	private boolean runSolver = false;
 	private boolean evaluation = false;
+	private boolean centrality = false;
 	public boolean verbose = true;
 	
 	private int trial = 1;
@@ -81,14 +83,15 @@ public class WsdExecutor {
 	/**
 	 * Calls all the functions needed to perform the disambiguation when param is a sentence
 	 * @param sentence
+	 * @param centrality 
 	 */
 	//@overload
-	public void performDisambiguation(String sentence){
+	public void performDisambiguation(String sentence, Boolean centrality){
 		
 		//compute POS and Lemmas of the given sentence
 		HashMap<String, ArrayList<String[]>> pos_lemmaWordIndexParams = 
 				this.stanfordAdapter.calculateLemmasAndPOS(sentence);
-		this.performDisambiguation(pos_lemmaWordIndexParams);
+		this.performDisambiguation(pos_lemmaWordIndexParams, centrality, true);
 	}
 	
 	
@@ -98,29 +101,36 @@ public class WsdExecutor {
 	 * the lemma, the word as it was written in the sentence, the index of the word in the sentence and
 	 * the params of the word given in the evaluation framework
 	 */
-	public void performDisambiguation(HashMap<String, ArrayList<String[]>> pos_lemmaWordIndexParamsMAP){
+	public void performDisambiguation(HashMap<String, ArrayList<String[]>> pos_lemmaWordIndexParamsMAP, boolean centrality, boolean sentences){
 		HashMap<String, ArrayList<String[]>> selectedPos = this.selectPos(pos_lemmaWordIndexParamsMAP);
 		//create the graph
-		WsdGraph graph = this.createDisambiguationGraph(selectedPos);
+		WsdGraph graph = this.createDisambiguationGraph(selectedPos, centrality);
 		
 		//save gml (optional)
 		if(this.saveGml){
-			graph.saveToGML(this.pathToGML, this.fileName+this.progrSaveName);
+			if (sentences) {
+				graph.saveToGML(this.pathToGML, this.fileNameSentences+this.progrSaveName);
+			} else {
+				graph.saveToGML(this.pathToGML, this.fileName+this.progrSaveName);
+			}
 		}
 		
 		this.createResultsDir();
 		// Use centrality to disambiguate senses in a word
-		this.printCentralityDisambiguation(graph);
-		
-		//save to gtsp (NEEDED). The solver and all dependent methods are invoked only if the graph is not empty
-		if(graph.saveToGTSP(this.tspSolverHomeDir+this.tspSolverPathToGTSPLIB, this.fileName+this.progrSaveName)){
-			this.setTSPSolver();
-			if(this.getRunSolver()) {
-				if(this.runSolver()){
-					this.generateOutputFile(graph);
-				}
-			}	
+		if (centrality) {
+			this.printCentralityDisambiguation(graph, sentences);
+		} else {
+			//save to gtsp (NEEDED). The solver and all dependent methods are invoked only if the graph is not empty
+			if(graph.saveToGTSP(this.tspSolverHomeDir+this.tspSolverPathToGTSPLIB, this.fileName+this.progrSaveName)){
+				this.setTSPSolver();
+				if(this.getRunSolver()) {
+					if(this.runSolver()){
+						this.generateOutputFile(graph);
+					}
+				}	
+			}
 		}
+		
 		System.out.println(this.progrSaveName);
 		//the following must be the last instruction of this method
 		this.progrSaveName++;
@@ -143,7 +153,7 @@ public class WsdExecutor {
 	}
 
 
-	private void printCentralityDisambiguation(WsdGraph graph) {
+	private void printCentralityDisambiguation(WsdGraph graph, boolean sentences) {
 		// Map<Sentence Index, Senso corretto> 
 		// Contiene i sensi disambiguati
 		Map<Integer, WsdVertex> disambiguationMap = new HashMap<Integer, WsdVertex>();
@@ -165,16 +175,20 @@ public class WsdExecutor {
 			}
 		}
 		// Print results
-		this.printMapToFile(disambiguationMap, this.fileNameCentrality, this.evaluation);
+		this.printMapToFile(disambiguationMap, this.fileNameCentrality, this.evaluation, sentences);
 		// results in .key format
 	}
 
 
-	private void printMapToFile(Map<Integer, WsdVertex> disambiguationMap, String fileName, Boolean evaluation) {
+	private void printMapToFile(Map<Integer, WsdVertex> disambiguationMap, String fileName, boolean evaluation, boolean sentences) {
 		// print Map ordered by key
 		try {
-			PrintWriter keyFileWriter = new PrintWriter(
-					new FileWriter(this.resultsPath + fileName +this.resultsFileName, true));
+			PrintWriter keyFileWriter;
+			if (sentences) {
+				keyFileWriter = new PrintWriter(new FileWriter(this.resultsPath + fileName + this.fileNameSentences +this.resultsFileName, true));
+			} else {
+				keyFileWriter = new PrintWriter(new FileWriter(this.resultsPath + fileName +this.resultsFileName, true));
+			}
 			//sort word by their position in the text
 			SortedSet<Integer> keys = new TreeSet<>(disambiguationMap.keySet());
 			for (Integer key : keys) { 
@@ -370,10 +384,11 @@ public class WsdExecutor {
 	/**
 	 * Create a graph having nodes that stores all the information in a PersonalVertex format and 
 	 * edges in the JGraphT weighted graph format where the weight is computed using tree kernels 
+	 * @param centrality 
 	 * @param pos_lemmaWordIndexParams: a map having POS as key and a list of word (with their lemma
 	 * index and evaluation params) having that POS as value
 	 */
-	private WsdGraph createDisambiguationGraph(Map<String, ArrayList<String[]>> pos_lemmaWordIndexParams){
+	private WsdGraph createDisambiguationGraph(Map<String, ArrayList<String[]>> pos_lemmaWordIndexParams, boolean centrality){
 		
 		WsdGraph graph = new WsdGraph();
 		// Support graph on which we compute vertex centrality
@@ -396,14 +411,18 @@ public class WsdExecutor {
 		    	String params = lemmaWordIndexParams[3];
 		    	int sentenceIndex = Integer.parseInt(lemmaWordIndexParams[2]);
 		    	this.createNodes(graph, sentenceIndex, searchTerm, originalWord, posTag, lemmaWord, params);
-		    	// Add nodes on support graph
-		    	this.createNodes(supportGraph, sentenceIndex, searchTerm, originalWord, posTag, lemmaWord, params);
+		    	if (centrality) {
+		    		// Add nodes on support graph
+			    	this.createNodes(supportGraph, sentenceIndex, searchTerm, originalWord, posTag, lemmaWord, params);
+		    	}
 		    	
 		    	//if the lemma is different from the original word, search senses for both of them
 		    	if(!searchTerm.equalsIgnoreCase(originalWord)){
 		    		this.createNodes(graph, sentenceIndex, originalWord, originalWord, posTag, lemmaWord, params);
-		    		// Add nodes on support graph
-		    		this.createNodes(supportGraph, sentenceIndex, originalWord, originalWord, posTag, lemmaWord, params);
+		    		if (centrality) {
+		    			// Add nodes on support graph
+			    		this.createNodes(supportGraph, sentenceIndex, originalWord, originalWord, posTag, lemmaWord, params);
+		    		}
 		    	}
 		    }
 		    it_p_lwip.remove();
@@ -412,17 +431,19 @@ public class WsdExecutor {
 		
 		
 		this.createEdges(graph);
-		this.createEdges(supportGraph);
-		int depth = 1;
-		//this.addSupportNodes(supportGraph, depth);
-		//this.computeInDegVertexCentrality(supportGraph);
-		this.computeKppVertexCentrality(supportGraph);
-		//this.computePageRankVertexCentrality(supportGraph, 0.5);
-		//supportGraph.saveToGML("GML/", "supportGraph");
-		//this.computeVertexCentrality(graph);
-		this.copyCentrality(supportGraph.getVerticesList(), graph.getVerticesList());
-		return graph;
+		if (centrality) {
+			//this.createEdges(supportGraph);
+			int depth = 1;
+			//this.addSupportNodes(supportGraph, depth);
+			//this.computeInDegVertexCentrality(supportGraph);
+			this.computeKppVertexCentrality(supportGraph);
+			//this.computePageRankVertexCentrality(supportGraph, 0.5);
+			//supportGraph.saveToGML("GML/", "supportGraph");
+			//this.computeVertexCentrality(graph);
+			this.copyCentrality(supportGraph.getVerticesList(), graph.getVerticesList());
+		}
 		
+		return graph;
 	}
 
 	private void copyCentrality(ArrayList<WsdVertex> from, ArrayList<WsdVertex> to) {
@@ -437,35 +458,53 @@ public class WsdExecutor {
 
 
 	private void addSupportNodes(WsdGraph graph, int depth) {
-		// For every node add support nodes if node connects each other and dist <= depth
-		if (depth <= 0)
-			return;
-		
+		Map<IWord, ArrayList<WsdVertex>> relatedWords = new HashMap<IWord, ArrayList<WsdVertex>>();
 		ArrayList<WsdVertex> vertexes = graph.getVerticesList();
 		ArrayList<ArrayList<IWord>> vertexesRelatedWords = new ArrayList<ArrayList<IWord>>();
 		for (WsdVertex v : vertexes) {
-			ArrayList<IWord> vRelatedWords = this.wordnet.getSynsetWords(v.getWordId());
-			vertexesRelatedWords.add(vRelatedWords);
-			System.out.println("Vertice: " + v.getId());
-			System.out.println("|KEY| " + v.getGlossKey() + " |WORD ID| " + v.getWordId().toString());
-			for (IWord word : vRelatedWords) {
-				if (word.getSenseKey().equals(SenseKeyParser.getInstance().parseLine(v.getGlossKey()))) {
-					// Sono la stessa word
-				} else {
-					// Devo capire se ha senso cercare altre parole e in base a che relazione 
-					ArrayList<IWord> vSubRelatedWords = this.wordnet.getRelatedSynsetWords(word.getID());
-					for (IWord subWord : vSubRelatedWords) {
-						System.out.println("      " + subWord.toString() + " |KEY| " + subWord.getSenseKey() + " |WORD ID| " + subWord.getID().toString());
-					}
-				}
-				System.out.println(word.toString() + " |KEY| " + word.getSenseKey() + " |WORD ID| " + word.getID().toString());
-			}
+			//ArrayList<IWord> vRelatedWords = this.wordnet.getSynsetWords(v.getWordId());
+			ArrayList<IWord> vRelatedWords = this.wordnet.getRelatedSynsetWords(v.getWordId());
 			
+			vertexesRelatedWords.add(vRelatedWords);
 			for (IWord word : vRelatedWords) {
-				
+				ArrayList<WsdVertex> tempVertexes;
+				if (relatedWords.containsKey(word)) {
+					System.out.println("Trovata parola in comune ");
+					tempVertexes = relatedWords.get(word);
+				} else {
+					tempVertexes = new ArrayList<WsdVertex>();
+				}
+				tempVertexes.add(v);
+				relatedWords.put(word, tempVertexes);
+			}
+		}
+		for (ArrayList<WsdVertex> vs : relatedWords.values()) {
+			for (WsdVertex vv : vs) {
+				System.out.print(vv.getId() + " ");
 			}
 			System.out.println();
 		}
+		// Per ogni coppia di vertici che disambigua due parole di indice diverso nella frase
+		// cerco le parole correlate e aggiungo nodi e archi solo se hanno una stessa parola correlata in comune
+		/*
+		int size = vertexes.size();
+		for (int i = 0; i < size; i++) {
+			WsdVertex v1 = vertexes.get(i);
+			ArrayList<IWord> v1Words = vertexesRelatedWords.get(i);
+			for (int j = 0; j < size; j++) {
+				WsdVertex v2 = vertexes.get(j);
+				if (v1.getSentenceIndex() == v2.getSentenceIndex())
+					continue;
+
+				ArrayList<IWord> v2Words = vertexesRelatedWords.get(j);
+				// Allora disambiguano parole distinte nella frase
+				for (IWord word1 : v1Words) {
+					for (IWord word2 : v2Words) {
+						//// mmmmm meglio con una Map per la complessità
+					}
+				}
+			}
+		}*/
 	}
 
 	private void computeInDegVertexCentrality(WsdGraph graph) {
@@ -493,7 +532,7 @@ public class WsdExecutor {
 					double distPath = graph.distance(vertices.get(i), vertices.get(j));
 					// Check if path exists (or edge)
 					if (distPath > 0)
-						distance += 1 / distPath;
+						distance += distPath;
 				}
 			}
 			if (nVertici > 1)
@@ -509,7 +548,7 @@ public class WsdExecutor {
 		for (int i = 0; i < nVertici; i++) {
 			double pageRankCentrality = pageRank(graph, vertices.get(i), nVertici, alpha, 5);
 			vertices.get(i).setPageRankCentrality(pageRankCentrality);
-			System.out.println("Vertice " + vertices.get(i).getId() + " pagerank " + vertices.get(i).getPageRankCentrality());
+			//System.out.println("Vertice " + vertices.get(i).getId() + " pagerank " + vertices.get(i).getPageRankCentrality());
 		}
 	}
 	
@@ -738,5 +777,10 @@ public class WsdExecutor {
 				System.err.println("defined kernelType \""+kernelType+"\" has not been found. Used default "+treeKernelType);
 		}
 		
+	}
+
+
+	public String getFileNameCentrality() {
+		return this.fileNameCentrality;
 	}
 }

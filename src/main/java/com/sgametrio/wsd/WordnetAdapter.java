@@ -130,15 +130,17 @@ public class WordnetAdapter {
 				dict.open();	
 				POS wnPos = this.posMap.get(pos);		
 				IIndexWord idxWord = dict.getIndexWord(word, wnPos);
-				for(IWordID wordID: idxWord.getWordIDs()){
-					ids.add(wordID);
+				if (idxWord != null) {
+					for(IWordID wordID: idxWord.getWordIDs()){
+						ids.add(wordID);
+					}
 				}
 				dict.close();	
 			}catch(IOException e){
 				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 				System.err.println(e);
 			}catch(NullPointerException e){
-				System.err.println("Word \""+word+"\" not found in WordNet.");
+				System.err.println("Word \""+word+"\" with POS " + pos + "not found in WordNet.");
 			}
 			return ids;
 		}

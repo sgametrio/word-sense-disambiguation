@@ -11,7 +11,7 @@ import com.sgametrio.wsd.WsdLauncher;
 
 public class InputExtractor {
 	
-	public static final String evaluationFrameworkPathToALLFile = WsdLauncher.frameworkFilePath+"ALL/ALL.data.xml";
+	public static final String evaluationFrameworkPathToAllFile = WsdLauncher.frameworkFilePath+"ALL/ALL.data.xml";
 	public static final String evaluationFrameworkPathToSemeval2007File = WsdLauncher.frameworkFilePath+"semeval2007/semeval2007.data.xml";
 	
 	public static final String evaluationFrameworkPathToSemeval20137File = WsdLauncher.frameworkFilePath+"semeval2013/semeval2013.data.xml";
@@ -19,7 +19,7 @@ public class InputExtractor {
 	public static final String evaluationFrameworkPathToSenseval2File = WsdLauncher.frameworkFilePath+"senseval2/senseval2.data.xml";
 	public static final String evaluationFrameworkPathToSenseval3File = WsdLauncher.frameworkFilePath+"senseval3/senseval3.data.xml";
 	
-	public static String currentDataFile = evaluationFrameworkPathToSenseval3File;
+	public static String currentDataFile = evaluationFrameworkPathToAllFile;
 	/**
 	 * Extract fields from the given xml sentence and output them in a format valid to be given to 
 	 * performDisambiguation method
