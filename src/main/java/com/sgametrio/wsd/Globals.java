@@ -1,4 +1,4 @@
-package globals;
+package com.sgametrio.wsd;
 
 import java.io.File;
 
@@ -17,8 +17,9 @@ public class Globals {
 	public static final String Semeval2015 = "semeval2015";
 	public static final String Senseval2 = "senseval2";
 	public static final String Senseval3 = "senseval3";
+	public static final String MiniSenseval3 = "mini-senseval3";
 	// Change this if you want to change evaluation dataset
-	public static final String currentDataset = Senseval3;
+	public static final String currentDataset = MiniSenseval3;
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
 
@@ -40,6 +41,17 @@ public class Globals {
 	public static final String gmlPath = "GML/";
 	public static final String gtspPath = tspSolverPathToGTSPLIB;
 	public static final String tourPath = tspSolverPathToGTOURS;
+	
+	public static final String fileNameCentrality = "centrality";
+	public static final String fileName = "senseval3_subTrees";
 
 	public static final int runs = 1;
+
+	// Available centrality measures
+	public static final String inDegreeCentrality = "in-degree";
+	public static final String pageRankCentrality = "page-rank";
+	public static final String kppCentrality = "kpp";
+	
+	// Current centrality method
+	public static final String centrality = kppCentrality;
 }

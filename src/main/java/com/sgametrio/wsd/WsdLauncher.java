@@ -1,6 +1,7 @@
 package com.sgametrio.wsd;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,13 +16,12 @@ import org.w3c.dom.NodeList;
 
 import evaluation.InputExtractor;
 import evaluation.Scorer;
-import globals.Globals;
 
 public class WsdLauncher {
 	
 	//settings, used to make code clearer, use params in WsdExecutor for development
 	private static boolean saveExamples = false;
-	private static boolean runSolver = true; //used to create only .gml file
+	private static boolean runSolver = false; //used to create only .gml file
 	private static boolean saveGml = true;
 	private static boolean verbose = false;
 	
@@ -38,7 +38,7 @@ public class WsdLauncher {
 		};
 		boolean centrality = !runSolver;
 		//launchDisambiguation(saveExamples, saveGml, verbose, runSolver, sentences, centrality);
-		launchDisambiguationEvaluation(saveExamples, false, verbose, runSolver, centrality);
+		launchDisambiguationEvaluation(saveExamples, saveGml, verbose, runSolver, centrality);
 		//launchEvaluator(Globals.currentGoldFile, "RESULTS/centrality_wsdResults.KEY");
 		//launchEvaluator(Globals.pathToSenseval3 + Globals.goldFileSuffix, "RESULTS/senseval3_centrality.KEY");
 		//launchEvaluator(Globals.currentGoldFile, Globals.myKeyFile);
@@ -83,6 +83,14 @@ public class WsdLauncher {
 			doc.getDocumentElement().normalize();
 			//get all sentences in xml file
 			NodeList allSentences = doc.getElementsByTagName("sentence");
+			// Delete old result file
+			if (centrality) {
+				FileWriter deleteOldResultsFile = new FileWriter(Globals.resultsPath + Globals.fileNameCentrality + Globals.resultsFileName);
+				deleteOldResultsFile.close();
+			} else {
+				FileWriter deleteOldResultsFile = new FileWriter(Globals.resultsPath + Globals.fileName + Globals.resultsFileName);
+				deleteOldResultsFile.close();
+			}
 			//iterate over all sentences and send them to inputExtractor to be processed
 			for (int sentIndex = 0; sentIndex < allSentences.getLength(); sentIndex++) {
 				Node sentence = allSentences.item(sentIndex);

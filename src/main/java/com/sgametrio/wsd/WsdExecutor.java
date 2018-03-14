@@ -32,7 +32,6 @@ import edu.mit.jwi.item.IWordID;
 import edu.stanford.nlp.trees.Tree;
 
 import com.sgametrio.wsd.KelpAdapter;
-import globals.Globals;
 
 public class WsdExecutor {
 	
@@ -55,17 +54,15 @@ public class WsdExecutor {
 	private boolean runSolver = false;
 	private boolean evaluation = false;
 	private boolean centrality = false;
-	public boolean verbose = true;
+	public boolean verbose = false;
 	
 	private int trial = 1;
 	
 	//CONSTRUCTOR
-	public WsdExecutor(){
-		
+	public WsdExecutor(){	
 		this.stanfordAdapter = new StanfordUtilsAdapter();
 		this.wordnet = new WordnetAdapter();
-		this.kelp = new KelpAdapter();
-		
+		this.kelp = new KelpAdapter();	
 	}
 	
 	
@@ -164,7 +161,7 @@ public class WsdExecutor {
 			}
 		}
 		// Print results
-		System.out.print("Printing to file.. ");
+		//System.out.print("Printing to file.. ");
 		this.printMapToFile(disambiguationMap, this.fileNameCentrality, this.evaluation, sentences);
 		// results in .key format
 	}
@@ -309,10 +306,11 @@ public class WsdExecutor {
 				//get the error stream
 				//InputStream is = p.getErrorStream();
 				//String errorStream = this.getProcessOutput(is);
+				String output = this.getProcessOutput(p.getInputStream());
 
 				//if verbose mode is on, prints tsp solver output and errors
 				if(this.verbose){
-					System.out.println(this.getProcessOutput(p.getInputStream()));
+					System.out.println(output);
 					//System.out.println(errorStream);
 					System.out.println("____________________________________");
 				}
@@ -424,19 +422,36 @@ public class WsdExecutor {
 		
 		this.createEdges(graph);
 		if (centrality) {
-			//this.createEdges(supportGraph);
+			// check if we can compute distances on support nodes
 			int depth = 1;
-			//this.addSupportNodes(supportGraph, depth);
-			//this.computeInDegVertexCentrality(supportGraph);
-			this.computeKppVertexCentrality(supportGraph);
-			//this.computePageRankVertexCentrality(supportGraph, 0.5);
+			this.addSupportNodes(supportGraph, depth);
+			this.createEdges(supportGraph);
 			//supportGraph.saveToGML("GML/", "supportGraph");
-			//this.computeVertexCentrality(graph);
+			this.computeVertexCentrality(supportGraph);
 			this.copyCentrality(supportGraph.getVerticesList(), graph.getVerticesList());
 		}
 		
 		return graph;
 	}
+
+	private void computeVertexCentrality(WsdGraph graph) {
+		switch (Globals.centrality) {
+			case Globals.kppCentrality:
+				this.computeKppVertexCentrality(graph);
+				break;
+			case Globals.pageRankCentrality:
+				this.computePageRankVertexCentrality(graph, 0.5);
+				break;
+			case Globals.inDegreeCentrality:
+				this.computeInDegVertexCentrality(graph);
+				break;
+			default:
+				this.computeKppVertexCentrality(graph);
+				break;
+		}
+			
+	}
+
 
 	private void copyCentrality(ArrayList<WsdVertex> from, ArrayList<WsdVertex> to) {
 		// nodes present in `from` ArrayList are present in `to` too
@@ -476,27 +491,6 @@ public class WsdExecutor {
 			}
 			System.out.println();
 		}
-		// Per ogni coppia di vertici che disambigua due parole di indice diverso nella frase
-		// cerco le parole correlate e aggiungo nodi e archi solo se hanno una stessa parola correlata in comune
-		/*
-		int size = vertexes.size();
-		for (int i = 0; i < size; i++) {
-			WsdVertex v1 = vertexes.get(i);
-			ArrayList<IWord> v1Words = vertexesRelatedWords.get(i);
-			for (int j = 0; j < size; j++) {
-				WsdVertex v2 = vertexes.get(j);
-				if (v1.getSentenceIndex() == v2.getSentenceIndex())
-					continue;
-
-				ArrayList<IWord> v2Words = vertexesRelatedWords.get(j);
-				// Allora disambiguano parole distinte nella frase
-				for (IWord word1 : v1Words) {
-					for (IWord word2 : v2Words) {
-						//// mmmmm meglio con una Map per la complessità
-					}
-				}
-			}
-		}*/
 	}
 
 	private void computeInDegVertexCentrality(WsdGraph graph) {
