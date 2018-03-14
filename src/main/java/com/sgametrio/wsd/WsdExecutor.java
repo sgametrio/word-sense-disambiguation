@@ -424,10 +424,10 @@ public class WsdExecutor {
 		if (centrality) {
 			// check if we can compute distances on support nodes
 			int depth = 1;
-			this.addSupportNodes(supportGraph, depth);
 			this.createEdges(supportGraph);
-			//supportGraph.saveToGML("GML/", "supportGraph");
+			this.addSupportNodes(supportGraph, depth);
 			this.computeVertexCentrality(supportGraph);
+			//supportGraph.saveToGML("GML/", "supportGraph");
 			this.copyCentrality(supportGraph.getVerticesList(), graph.getVerticesList());
 		}
 		
@@ -435,7 +435,12 @@ public class WsdExecutor {
 	}
 
 	private void computeVertexCentrality(WsdGraph graph) {
-		switch (Globals.centrality) {
+		switch (Globals.computeCentrality) {
+			case Globals.allCentrality: 
+				this.computeKppVertexCentrality(graph);
+				this.computePageRankVertexCentrality(graph, 0.5);
+				this.computeInDegVertexCentrality(graph);
+				break;
 			case Globals.kppCentrality:
 				this.computeKppVertexCentrality(graph);
 				break;
@@ -464,19 +469,36 @@ public class WsdExecutor {
 	}
 
 
+	/**
+	 * For every vertex in the graph we search related senses in wordnet.
+	 * If we find common related senses between different vertexes with different sentence indexes,
+	 * we add this word to the graph so we can compute centrality based also on these support nodes
+	 * @param graph
+	 * @param depth
+	 */
 	private void addSupportNodes(WsdGraph graph, int depth) {
 		Map<IWord, ArrayList<WsdVertex>> relatedWords = new HashMap<IWord, ArrayList<WsdVertex>>();
 		ArrayList<WsdVertex> vertexes = graph.getVerticesList();
-		ArrayList<ArrayList<IWord>> vertexesRelatedWords = new ArrayList<ArrayList<IWord>>();
 		for (WsdVertex v : vertexes) {
-			//ArrayList<IWord> vRelatedWords = this.wordnet.getSynsetWords(v.getWordId());
-			ArrayList<IWord> vRelatedWords = this.wordnet.getRelatedSynsetWords(v.getWordId());
-			
-			vertexesRelatedWords.add(vRelatedWords);
+			// TODO: Con che relazione ha senso cercare le parole?
+			ArrayList<IWord> vRelatedWords1 = this.wordnet.getSynsetWords(v.getWordId());
+			ArrayList<IWord> vRelatedWords2 = this.wordnet.getRelatedSynsetWords(v.getWordId());
+			ArrayList<IWord> vRelatedWords = new ArrayList<IWord>();
+			for (IWord word : vRelatedWords1) {
+				vRelatedWords.add(word);
+			}
+			for (IWord word : vRelatedWords2) {
+				if (!vRelatedWords.contains(word))
+					vRelatedWords.add(word);
+			}
+
 			for (IWord word : vRelatedWords) {
+				// Se la parola esiste già nel mio grafo non devo aggiungerla
+				if (graph.containsWord(word))
+					continue;
+				
 				ArrayList<WsdVertex> tempVertexes;
 				if (relatedWords.containsKey(word)) {
-					System.out.println("Trovata parola in comune ");
 					tempVertexes = relatedWords.get(word);
 				} else {
 					tempVertexes = new ArrayList<WsdVertex>();
@@ -485,11 +507,44 @@ public class WsdExecutor {
 				relatedWords.put(word, tempVertexes);
 			}
 		}
-		for (ArrayList<WsdVertex> vs : relatedWords.values()) {
-			for (WsdVertex vv : vs) {
-				System.out.print(vv.getId() + " ");
+		// Per ogni parola correlata ho tutti i vertici che l'hanno in comune
+		// Se ha almeno 2 vertici in comune allora controllo se esiste già nel mio grafo
+		// Se non esiste creo il vertice e computo la relazione fra tutti i vertici che ha
+		
+		for (IWord w : relatedWords.keySet()) {
+			ArrayList<WsdVertex> possibleVertexes = relatedWords.get(w);
+			// Se una parola è collegata ad almeno due sensi che disambiguano due parole diverse allora
+			ArrayList<Integer> differentIndexes = new ArrayList<Integer>();
+			for (WsdVertex vv : possibleVertexes) {
+				if (!differentIndexes.contains(vv.getSentenceIndex())) {
+					differentIndexes.add(vv.getSentenceIndex());
+				}
 			}
-			System.out.println();
+			if (differentIndexes.size() < 2) {
+				continue;
+			}
+			String[] glossAndSenseKey = this.wordnet.getGloss(w.getID());
+			
+			String[] glossExamples = glossAndSenseKey[0].split("\""); //separates glosses form examples
+			
+			//compute dependency trees for the gloss
+			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(glossExamples[0]);
+			// Più di un vertice correlato, creo il nodo e ci collego i vertici
+			for (WsdVertex vv1 : possibleVertexes) {
+				int sentenceIndex1 = vv1.getSentenceIndex();
+				for (WsdVertex vv2 : possibleVertexes) {
+					if (vv2.getSentenceIndex() != sentenceIndex1) {
+						// Creo il nodo, e creo i due archi pesati
+						WsdVertex temp = graph.addVertex(w, treeRepresentations.get(0).toString());
+						double edgeWeight = this.kelp.computeTreeSimilarity(temp.getTreeGlossRepr(),
+								vv1.getTreeGlossRepr(), this.treeKernelType);
+						graph.addEdge(temp.getId(), vv1.getId(), edgeWeight);
+						edgeWeight = this.kelp.computeTreeSimilarity(temp.getTreeGlossRepr(),
+								vv2.getTreeGlossRepr(), this.treeKernelType);
+						graph.addEdge(temp.getId(), vv2.getId(), edgeWeight);
+					}
+				}
+			}
 		}
 	}
 
@@ -614,6 +669,7 @@ public class WsdExecutor {
 						double edgeWeight = 1;
 						graph.addEdge(vertices.get(i).getId(), vertices.get(j).getId(), edgeWeight);
 						
+					// Se due sensi disambiguano due sentence index diversi e hanno la stessa gloss key allora ha senso computare
 					} else if ( ! ( vertices.get(i).getGlossKey().equalsIgnoreCase(vertices.get(j).getGlossKey()))){
 
 						// Compute similarity here

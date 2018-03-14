@@ -96,8 +96,7 @@ public class WordnetAdapter {
 		//METHODS		
 		/**
 		 * Returns a list containing all the glosses of the given word for the given POS
-		 * @param word: the word for which the glosses have to be retrieved
-		 * @param pos: part of speech of the word
+		 * @param wordID: the word for which the glosses have to be retrieved
 		 * @return: gloss of the given word for the given POS 
 		 */
 		public String[] getGloss(IWordID wordID){	
@@ -188,7 +187,7 @@ public class WordnetAdapter {
 		}
 		
 		/**
-		 * 
+		 * Return IWords list of semantically related synset of wordId synset
 		 * @param wordId
 		 * @return list containing IWords from semantically related synset of wordId synset
 		 */

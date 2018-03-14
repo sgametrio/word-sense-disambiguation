@@ -74,12 +74,30 @@ public class WsdVertex {
 		this.word = word.getLemma();
 		this.pos = word.getPOS().toString();
 		this.gloss = "";
+		this.treeGlossRepr = "";
 		this.glossKey = word.getSenseKey().toString();
 		this.params = "";
 		String[] lemmaWord = {"",""};
 		this.lemmaWord = lemmaWord;
 		this.examples = new ArrayList<String>();
 		this.uniqueWordNetID = word.getID();   
+	}
+
+	public WsdVertex(int id, IWord word, String treeGloss) {
+		// Used to create support 
+		this.id = id;
+		this.sentenceIndex = -1;
+		this.searchTerm = "";
+		this.word = word.getLemma();
+		this.pos = word.getPOS().toString();
+		this.gloss = "";
+		this.glossKey = word.getSenseKey().toString();
+		this.params = "";
+		this.treeGlossRepr = treeGloss;
+		String[] lemmaWord = {"",""};
+		this.lemmaWord = lemmaWord;
+		this.examples = new ArrayList<String>();
+		this.uniqueWordNetID = word.getID();
 	}
 
 /**

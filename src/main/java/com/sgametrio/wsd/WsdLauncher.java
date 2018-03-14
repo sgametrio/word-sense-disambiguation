@@ -22,7 +22,7 @@ public class WsdLauncher {
 	//settings, used to make code clearer, use params in WsdExecutor for development
 	private static boolean saveExamples = false;
 	private static boolean runSolver = false; //used to create only .gml file
-	private static boolean saveGml = true;
+	private static boolean saveGml = false;
 	private static boolean verbose = false;
 	
 	public static void main(String a[]){
@@ -32,8 +32,8 @@ public class WsdLauncher {
 //				"Dan speaks three languages, is good a DIY, and he can cook.",
 //				"He made such a terrible face that the children ran away.",
 ////				ambiguous sentences
-//				"I saw him sawing wood with a saw", //saw
-				"I took out my contact lenses and put on my glasses.", //glass
+				"I saw him sawing wood with a saw", //saw
+//				"I took out my contact lenses and put on my glasses.", //glass
 //				"The water, spilled over the tops of these, \"river\" banks during the last flood." //river
 		};
 		boolean centrality = !runSolver;

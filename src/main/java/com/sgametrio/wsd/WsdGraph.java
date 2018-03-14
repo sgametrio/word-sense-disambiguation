@@ -531,4 +531,27 @@ public class WsdGraph extends SimpleWeightedGraph<WsdVertex, Integer> {
 		this.progressiveNodeId++;
 		return v;
 	}
+	
+	// Used for support nodes
+		public WsdVertex addVertex(IWord word, String treeGloss) {
+			WsdVertex v = new WsdVertex(this.progressiveNodeId, word, treeGloss);
+			this.addVertex(v);
+			idToNode.put(progressiveNodeId, v);
+			this.progressiveNodeId++;
+			return v;
+		}
+	
+	/**
+	 * Check if word is present in the graph
+	 * @param word
+	 * @return
+	 */
+	public boolean containsWord (IWord word) {
+		WsdVertex vv = new WsdVertex(this.progressiveNodeId, word);
+		for (WsdVertex v : idToNode.values()) {
+			if (v.equalsSupport(vv))
+				return true;
+		}
+		return false;
+	}
 }

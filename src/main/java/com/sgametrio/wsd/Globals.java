@@ -19,7 +19,7 @@ public class Globals {
 	public static final String Senseval3 = "senseval3";
 	public static final String MiniSenseval3 = "mini-senseval3";
 	// Change this if you want to change evaluation dataset
-	public static final String currentDataset = MiniSenseval3;
+	public static final String currentDataset = All;
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
 
@@ -51,7 +51,12 @@ public class Globals {
 	public static final String inDegreeCentrality = "in-degree";
 	public static final String pageRankCentrality = "page-rank";
 	public static final String kppCentrality = "kpp";
+	public static final String allCentrality = "all";
 	
 	// Current centrality method
-	public static final String centrality = kppCentrality;
+	public static final String computeCentrality = kppCentrality;
+	
+	public static final String disambiguationCentrality = kppCentrality;
+
+	
 }
