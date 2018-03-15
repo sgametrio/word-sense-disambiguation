@@ -30,10 +30,11 @@ import java.util.TreeSet;
 import edu.mit.jwi.item.IWord;
 import edu.mit.jwi.item.IWordID;
 import edu.stanford.nlp.trees.Tree;
+import evaluation.InputInstance;
 
 import com.sgametrio.wsd.KelpAdapter;
 
-public class WsdExecutor {
+public class MyExecutor {
 	
 	//used for lemmatization
 	private StanfordUtilsAdapter stanfordAdapter = null;  
@@ -50,81 +51,80 @@ public class WsdExecutor {
 	private boolean saveExamples = false;
 	private boolean saveGml = false;
 	private boolean runSolver = false;
-	private boolean evaluation = false;
-	private boolean centrality = false;
+	private boolean evaluation = true;
 	public boolean verbose = false;
 	
 	private int trial = 1;
 	
 	//CONSTRUCTOR
-	public WsdExecutor(){	
+	public MyExecutor(){	
 		this.stanfordAdapter = new StanfordUtilsAdapter();
 		this.wordnet = new WordnetAdapter();
 		this.kelp = new KelpAdapter();	
 	}
 	
-	
-	/**
-	 * Calls all the functions needed to perform the disambiguation when param is a sentence
-	 * @param sentence
-	 * @param centrality 
-	 */
-	//@overload
-	public void performDisambiguation(String sentence, Boolean centrality){
-		
-		//compute POS and Lemmas of the given sentence
-		HashMap<String, ArrayList<String[]>> pos_lemmaWordIndexParams = 
-				this.stanfordAdapter.calculateLemmasAndPOS(sentence);
-		this.performDisambiguation(pos_lemmaWordIndexParams, centrality, true);
-	}
-	
-	
 	/**
 	 * Calls all the functions needed to perform the disambiguation
-	 * @param pos_lemmaWordIndexParamsMAP a map having word POS as keys and an array containing
+	 * @param instances a map having word POS as keys and an array containing
 	 * the lemma, the word as it was written in the sentence, the index of the word in the sentence and
 	 * the params of the word given in the evaluation framework
 	 */
-	public void performDisambiguation(HashMap<String, ArrayList<String[]>> pos_lemmaWordIndexParamsMAP, boolean centrality, boolean sentences){
-		HashMap<String, ArrayList<String[]>> selectedPos = this.selectPos(pos_lemmaWordIndexParamsMAP);
+	public void performDisambiguation(ArrayList<InputInstance> instances, boolean centrality){
+		ArrayList<InputInstance> selectedInstances = this.mySelectPos(instances);
+
 		//create the graph
-		WsdGraph graph = this.createDisambiguationGraph(selectedPos, centrality);
-		
+		MyGraph graph = this.createDisambiguationGraph(selectedInstances, centrality);
 		//save gml (optional)
-		if(this.saveGml){
-			if (sentences) {
-				graph.saveToGML(Globals.gmlPath, this.fileNameSentences+this.progrSaveName);
-			} else {
-				graph.saveToGML(Globals.gmlPath, Globals.fileName+this.progrSaveName);
-			}
+		
+		if(Globals.saveGml){
+			graph.saveToGML(Globals.gmlPath + Globals.fileName+this.progrSaveName);
 		}
 		
-		this.createResultsDir();
+		this.createDir(Globals.resultsPath);
 		// Use centrality to disambiguate senses in a word
 		if (centrality) {
-			this.printCentralityDisambiguation(graph, sentences);
-		} else {
-			//save to gtsp (NEEDED). The solver and all dependent methods are invoked only if the graph is not empty
-			if(graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+this.progrSaveName)){
-				this.setTSPSolver();
-				if(this.getRunSolver()) {
-					if(this.runSolver()){
-						this.generateOutputFile(graph);
-					}
-				}	
-			}
+			this.printCentralityDisambiguation(graph, false);
 		}
 		
 		System.out.println(this.progrSaveName);
 		//the following must be the last instruction of this method
 		this.progrSaveName++;
-		
 	}
 	
 	
-	private void createResultsDir() {
-		// if the directory  for RESULTS does not exist, create it
-		File resDir = new File("RESULTS");
+	private void printCentralityDisambiguation(MyGraph graph, boolean sentences) {
+		// Map<Sentence Index, Senso corretto> 
+		// Contiene i sensi disambiguati
+		Map<Integer, MyVertex> disambiguationMap = new HashMap<Integer, MyVertex>();
+		// Readable results
+		for (MyVertex v : graph.getNodes()) {
+			int sentenceIndex = v.getSentenceIndex();
+			if (sentenceIndex < 0)
+				continue;
+			// KPP centrality for now
+			double vCentrality = v.getCentrality();
+			// per ogni sentence index devo scegliere uno e un solo nodo
+			// Se la map contiene un nodo, lo sostituisco solo se ha maggiore centralità
+			if (disambiguationMap.containsKey(sentenceIndex)) {
+				if (disambiguationMap.get(sentenceIndex).getCentrality() < vCentrality) {
+					disambiguationMap.put(sentenceIndex, v);
+				}
+			} else {
+				disambiguationMap.put(sentenceIndex, v);
+			}
+		}
+		// Print results
+		//System.out.print("Printing to file.. ");
+		this.printMapToFile(disambiguationMap, Globals.fileNameCentrality, this.evaluation, sentences);
+		// results in .key format
+
+	}
+
+
+	public void createDir(String path) {
+		// if the directory does not exist, create it
+		// substring to avoid /
+		File resDir = new File(path.substring(0, path.length()-1));
 		if (!resDir.exists()) {
 			try{
 		    	resDir.mkdir();
@@ -136,36 +136,7 @@ public class WsdExecutor {
 		}
 	}
 
-
-	private void printCentralityDisambiguation(WsdGraph graph, boolean sentences) {
-		// Map<Sentence Index, Senso corretto> 
-		// Contiene i sensi disambiguati
-		Map<Integer, WsdVertex> disambiguationMap = new HashMap<Integer, WsdVertex>();
-		// Readable results
-		for (WsdVertex v : graph.getVerticesList()) {
-			int sentenceIndex = v.getSentenceIndex();
-			if (sentenceIndex < 0)
-				continue;
-			// KPP centrality for now
-			double vCentrality = v.getKppCentrality();
-			// per ogni sentence index devo scegliere uno e un solo nodo
-			// Se la map contiene un nodo, lo sostituisco solo se ha maggiore centralità
-			if (disambiguationMap.containsKey(sentenceIndex)) {
-				if (disambiguationMap.get(sentenceIndex).getKppCentrality() < vCentrality) {
-					disambiguationMap.put(sentenceIndex, v);
-				}
-			} else {
-				disambiguationMap.put(sentenceIndex, v);
-			}
-		}
-		// Print results
-		//System.out.print("Printing to file.. ");
-		this.printMapToFile(disambiguationMap, Globals.fileNameCentrality, this.evaluation, sentences);
-		// results in .key format
-	}
-
-
-	private void printMapToFile(Map<Integer, WsdVertex> disambiguationMap, String fileName, boolean evaluation, boolean sentences) {
+	private void printMapToFile(Map<Integer, MyVertex> disambiguationMap, String fileName, boolean evaluation, boolean sentences) {
 		// print Map ordered by key
 		try {
 			PrintWriter keyFileWriter;
@@ -177,13 +148,13 @@ public class WsdExecutor {
 			//sort word by their position in the text
 			SortedSet<Integer> keys = new TreeSet<>(disambiguationMap.keySet());
 			for (Integer key : keys) { 
-			   WsdVertex v = disambiguationMap.get(key);
+			   MyVertex v = disambiguationMap.get(key);
 			   if(evaluation) { //evaluation mode output format
-					if(v.getParams() != null){
-						keyFileWriter.write(v.getParams()+" "+v.getGlossKey()+"\n");
+					if(v.getSentenceTermId() != null){
+						keyFileWriter.write(v.getSentenceTermId()+" "+v.getGlossKey()+"\n");
 					}
 				} else { //sentence wsd output format
-					keyFileWriter.write("Disambiguated \""+v.getWord()+"\" as \n\t\t ("+v.getGlossKey()+") \""+v.getGloss()+"\"\n");
+					keyFileWriter.write("Disambiguated \""+v.getWord()+"\" as \n\t\t ("+v.getGlossKey()+") \""+this.wordnet.getGloss(v.getWord().getID())+"\"\n");
 				}
 			}
 			keyFileWriter.close();
@@ -193,37 +164,28 @@ public class WsdExecutor {
 		}
 	}
 
-
 	/**
 	 * Eliminate the words having POS not specified in posTags variable
 	 * @param oldMap: the map containing all the word of the sentence divided by POS
 	 * @return a map containing only the word having the "interesting" POS
 	 */
-	private HashMap<String, ArrayList<String[]>> selectPos(HashMap<String, ArrayList<String[]>> oldMap){
+	private ArrayList<InputInstance> mySelectPos(ArrayList<InputInstance> old){
 		
-		String[] posTags;
-		if(this.evaluation){
-			//if evaluation is performed, it considers wordnet tags;
-			String[] evaluationPosTags = {"NOUN", "VERB", "ADJ", "ADV"};
-			posTags = evaluationPosTags;
-		}else{
-			//if the disambiguation is performed giving sentences as input, it considers Stanford Parser tags;
-			String[] stanfordTags = {"JJ","JJR","JJS","NN","NNS",
-					"NNP","NNPS","RB","RBR","RBS",
-					"MD", "VB","VBD","VBG","VBN",
-					"VBP","VBZ"};
-			posTags = stanfordTags;
+		ArrayList<String> posTags = new ArrayList<String>();
+		String[] wordnetTags = {"NOUN", "VERB", "ADJ", "ADV"};
+		for (String tag : wordnetTags) {
+			posTags.add(tag);
 		}
 		
 		//select only the words belonging to the specified ("interesting") POS
-		HashMap<String, ArrayList<String[]>> selectedPos = new HashMap<String, ArrayList<String[]>>();
-		for(String tag : posTags){
-			if(oldMap.containsKey(tag)){
-				selectedPos.put(tag, oldMap.get(tag));
+		ArrayList<InputInstance> instances = new ArrayList<InputInstance>();
+		for (InputInstance i : old) {
+			if (posTags.contains(i.pos)) {
+				instances.add(i);
 			}
 		}
 		
-		return selectedPos;
+		return instances;
 		
 	}
 	
@@ -288,6 +250,7 @@ public class WsdExecutor {
 		if (solver.exists()) {
 			try{
 				//Set permissions
+				// TODO: Dynamic check Operating System
 				Set<PosixFilePermission> perms = new HashSet();
 				perms.add(PosixFilePermission.OWNER_READ);
 				perms.add(PosixFilePermission.OWNER_WRITE);
@@ -367,7 +330,6 @@ public class WsdExecutor {
 		return sb.toString();
 		
 	}
-
 	
 	/**
 	 * Create a graph having nodes that stores all the information in a PersonalVertex format and 
@@ -376,112 +338,129 @@ public class WsdExecutor {
 	 * @param pos_lemmaWordIndexParams: a map having POS as key and a list of word (with their lemma
 	 * index and evaluation params) having that POS as value
 	 */
-	private WsdGraph createDisambiguationGraph(Map<String, ArrayList<String[]>> pos_lemmaWordIndexParams, boolean centrality){
+	private MyGraph createDisambiguationGraph(ArrayList<InputInstance> instances, boolean centrality){
 		
-		WsdGraph graph = new WsdGraph();
+		MyGraph graph = new MyGraph();
 		// Support graph on which we compute vertex centrality
-		WsdGraph supportGraph = new WsdGraph();
+		// Maybe we haven't to create a second graph
+		MyGraph supportGraph = new MyGraph();
 		
-		//Initialize the graph creating nodes
-		Iterator<Map.Entry<String, ArrayList<String[]>>> it_p_lwip = pos_lemmaWordIndexParams.entrySet().iterator();
-		
-		//for all the POS-words pairs
-		while (it_p_lwip.hasNext()) {
-			
-		    Map.Entry<String, ArrayList<String[]>> pair_p_lwip = (Map.Entry<String, ArrayList<String[]>>)it_p_lwip.next();
-		    String posTag = pair_p_lwip.getKey();
-		    
-		    //for all the words having a given POS tag
-		    for(String[] lemmaWordIndexParams: pair_p_lwip.getValue()){
-		    	String searchTerm = lemmaWordIndexParams[0];
-		    	String originalWord = lemmaWordIndexParams[1];
-		    	String[] lemmaWord = {lemmaWordIndexParams[0],lemmaWordIndexParams[1]};
-		    	String params = lemmaWordIndexParams[3];
-		    	int sentenceIndex = Integer.parseInt(lemmaWordIndexParams[2]);
-		    	this.createNodes(graph, sentenceIndex, searchTerm, originalWord, posTag, lemmaWord, params);
-		    	if (centrality) {
-		    		// Add nodes on support graph
-			    	this.createNodes(supportGraph, sentenceIndex, searchTerm, originalWord, posTag, lemmaWord, params);
-		    	}
-		    	
-		    	//if the lemma is different from the original word, search senses for both of them
-		    	if(!searchTerm.equalsIgnoreCase(originalWord)){
-		    		this.createNodes(graph, sentenceIndex, originalWord, originalWord, posTag, lemmaWord, params);
-		    		if (centrality) {
-		    			// Add nodes on support graph
-			    		this.createNodes(supportGraph, sentenceIndex, originalWord, originalWord, posTag, lemmaWord, params);
-		    		}
-		    	}
-		    }
-		    it_p_lwip.remove();
-		    
+		// for every instance, I have to find all senses
+		for (InputInstance instance : instances) {
+			this.myCreateNodes(graph, instance);
+			if (centrality)
+				this.myCreateNodes(supportGraph, instance);
 		}
 		
-		
-		this.createEdges(graph);
+		this.myCreateEdges(graph);
 		if (centrality) {
 			// check if we can compute distances on support nodes
 			int depth = 1;
-			this.createEdges(supportGraph);
+			this.myCreateEdges(supportGraph);
 			this.addSupportNodes(supportGraph, depth);
 			this.computeVertexCentrality(supportGraph);
 			if (this.saveGml) 
-				supportGraph.saveToGML("GML/", "supportGraph" + this.progrSaveName);
-			this.copyCentrality(supportGraph.getVerticesList(), graph.getVerticesList());
+				supportGraph.saveToGML(Globals.gmlPath + "supportGraph" + this.progrSaveName);
+			this.copyCentrality(supportGraph, graph);
 		}
 		
 		return graph;
 	}
 
-	private void computeVertexCentrality(WsdGraph graph) {
+	/**
+	 * Copy centrality from `from` to `to`. `to` has the same initial `from` vertexes. `from` can have more
+	 * @param from
+	 * @param to
+	 */
+	private void copyCentrality(MyGraph from, MyGraph to) {
+		for (int i = 0; i < to.getNodes().size(); i++) {
+			to.getNodes().get(i).setCentrality(from.getNodes().get(i).getCentrality());
+		}
+	}
+
+
+	private void myCreateEdges(MyGraph graph) {
+		//Edge creation
+		ArrayList<MyVertex> vertices = graph.getNodes();
+		int size = vertices.size();
+		for(int i = 0; i < size; i++){
+			// Start from i+1 cause it's undirected and it will create the other edges itself
+			for(int j = i+1; j < size; j++){
+				//doesn't create edges between vertexes representing the same word 
+				if( vertices.get(i).getSentenceIndex() != vertices.get(j).getSentenceIndex()){
+					// Se due sensi disambiguano due sentence index diversi e hanno la stessa gloss key allora ha senso computare
+					if ( ! ( vertices.get(i).getGlossKey().equalsIgnoreCase(vertices.get(j).getGlossKey()))){
+
+						// Compute similarity here
+						double edgeWeight = this.kelp.computeTreeSimilarity(vertices.get(i).getTreeGlossRepr(),
+								vertices.get(j).getTreeGlossRepr(), this.treeKernelType);
+						
+						graph.addEdge(vertices.get(i), vertices.get(j), edgeWeight);
+					}
+				}
+			}
+		}
+		
+	}
+
+
+	private void myCreateNodes(MyGraph graph, InputInstance input) {
+		//for all the WordNet glosses of that word and its lemma
+		// TODO: Optimize access to DB
+		for(IWord word : this.wordnet.getWordsList(input.lemma, input.pos)) {
+			String[] glossAndSenseKey = this.wordnet.getGloss(word.getID());
+			
+			String[] glossExamples = glossAndSenseKey[0].split("\""); //separates glosses form examples
+			//compute dependency trees for the gloss
+			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(glossExamples[0]);
+			if(treeRepresentations.size()>1){
+				//if the gloss is composed by multiple sentences, there could be more dependency tree
+				//in this case a message is given and only the first tree is considered
+				System.out.println("More than one tree representation for a gloss of \""+input.lemma+"\" ("+glossExamples[0]+") computed. Took the first one.");
+			}
+			MyVertex v = new MyVertex(input, word, treeRepresentations.get(0).toString(), glossAndSenseKey[0]);
+			graph.addNode(v);
+		}		
+	}
+
+
+	private void computeVertexCentrality(MyGraph supportGraph) {
 		switch (Globals.computeCentrality) {
 			case Globals.allCentrality: 
-				this.computeKppVertexCentrality(graph);
-				this.computePageRankVertexCentrality(graph, 0.5);
-				this.computeInDegVertexCentrality(graph);
+				this.computeKppVertexCentrality(supportGraph);
+				//this.computePageRankVertexCentrality(supportGraph, 0.5);
+				//this.computeInDegVertexCentrality(supportGraph);
 				break;
 			case Globals.kppCentrality:
-				this.computeKppVertexCentrality(graph);
+				this.computeKppVertexCentrality(supportGraph);
 				break;
 			case Globals.pageRankCentrality:
-				this.computePageRankVertexCentrality(graph, 0.5);
+				//this.computePageRankVertexCentrality(supportGraph, 0.5);
 				break;
 			case Globals.inDegreeCentrality:
-				this.computeInDegVertexCentrality(graph);
+				//this.computeInDegVertexCentrality(supportGraph);
 				break;
 			default:
-				this.computeKppVertexCentrality(graph);
+				this.computeKppVertexCentrality(supportGraph);
 				break;
 		}
 			
 	}
 
-
-	private void copyCentrality(ArrayList<WsdVertex> from, ArrayList<WsdVertex> to) {
-		// nodes present in `from` ArrayList are present in `to` too
-		for (int i = 0; i < to.size(); i++) {
-			to.get(i).setCentrality(from.get(i).getCentrality());
-			to.get(i).setKppCentrality(from.get(i).getKppCentrality());
-			to.get(i).setInDegCentrality(from.get(i).getInDegCentrality());
-			to.get(i).setPageRankCentrality(from.get(i).getPageRankCentrality());
-		}
-	}
-
-
 	/**
 	 * For every vertex in the graph we search related senses in wordnet.
 	 * If we find common related senses between different vertexes with different sentence indexes,
 	 * we add this word to the graph so we can compute centrality based also on these support nodes
-	 * @param graph
+	 * @param supportGraph
 	 * @param depth
 	 */
-	private void addSupportNodes(WsdGraph graph, int depth) {
-		Map<IWord, ArrayList<WsdVertex>> relatedWords = new HashMap<IWord, ArrayList<WsdVertex>>();
-		ArrayList<WsdVertex> vertexes = graph.getVerticesList();
-		for (WsdVertex v : vertexes) {
+	private void addSupportNodes(MyGraph supportGraph, int depth) {
+		Map<IWord, ArrayList<MyVertex>> relatedWords = new HashMap<IWord, ArrayList<MyVertex>>();
+		ArrayList<MyVertex> vertexes = supportGraph.getNodes();
+		for (MyVertex v : vertexes) {
 			// Prendo tutte le word dal synset, e dai synsets correlati
-			ArrayList<IWord> vRelatedWords1 = this.wordnet.getSynsetWords(v.getWordId());
-			ArrayList<IWord> vRelatedWords2 = this.wordnet.getRelatedSynsetWords(v.getWordId());
+			ArrayList<IWord> vRelatedWords1 = this.wordnet.getSynsetWords(v.getWord().getID());
+			ArrayList<IWord> vRelatedWords2 = this.wordnet.getRelatedSynsetWords(v.getWord().getID());
 			ArrayList<IWord> vRelatedWords = new ArrayList<IWord>();
 			for (IWord word : vRelatedWords1) {
 				vRelatedWords.add(word);
@@ -493,14 +472,14 @@ public class WsdExecutor {
 
 			for (IWord word : vRelatedWords) {
 				// Se la parola esiste già nel mio grafo non devo aggiungerla
-				if (graph.containsWord(word))
+				if (supportGraph.containsWord(word))
 					continue;
 				
-				ArrayList<WsdVertex> tempVertexes;
+				ArrayList<MyVertex> tempVertexes;
 				if (relatedWords.containsKey(word)) {
 					tempVertexes = relatedWords.get(word);
 				} else {
-					tempVertexes = new ArrayList<WsdVertex>();
+					tempVertexes = new ArrayList<MyVertex>();
 				}
 				tempVertexes.add(v);
 				relatedWords.put(word, tempVertexes);
@@ -509,12 +488,11 @@ public class WsdExecutor {
 		// Per ogni parola correlata ho tutti i vertici che l'hanno in comune
 		// Se ha almeno 2 vertici in comune allora controllo se esiste già nel mio grafo
 		// Se non esiste creo il vertice e computo la relazione fra tutti i vertici che ha
-		
 		for (IWord w : relatedWords.keySet()) {
-			ArrayList<WsdVertex> possibleVertexes = relatedWords.get(w);
+			ArrayList<MyVertex> possibleVertexes = relatedWords.get(w);
 			// Se una parola è collegata ad almeno due sensi che disambiguano due parole diverse allora
 			ArrayList<Integer> differentIndexes = new ArrayList<Integer>();
-			for (WsdVertex vv : possibleVertexes) {
+			for (MyVertex vv : possibleVertexes) {
 				if (!differentIndexes.contains(vv.getSentenceIndex())) {
 					differentIndexes.add(vv.getSentenceIndex());
 				}
@@ -522,6 +500,7 @@ public class WsdExecutor {
 			if (differentIndexes.size() < 2) {
 				continue;
 			}
+			// TODO: modificare anche questo please
 			String[] glossAndSenseKey = this.wordnet.getGloss(w.getID());
 			
 			String[] glossExamples = glossAndSenseKey[0].split("\""); //separates glosses form examples
@@ -529,47 +508,36 @@ public class WsdExecutor {
 			//compute dependency trees for the gloss
 			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(glossExamples[0]);
 			// Più di un vertice correlato, creo il nodo e gli collego i vertici
-			WsdVertex temp = graph.addVertex(w, treeRepresentations.get(0).toString());
+		
+			MyVertex temp = new MyVertex(w, treeRepresentations.get(0).toString());
+			supportGraph.addNode(temp);
 			// Collego tutti i vertici a quel nodo
-			for (WsdVertex v : possibleVertexes) {
-				double edgeWeight = this.kelp.computeTreeSimilarity(temp.getTreeGlossRepr(),
+			for (MyVertex v : possibleVertexes) {
+				double weight = this.kelp.computeTreeSimilarity(temp.getTreeGlossRepr(),
 						v.getTreeGlossRepr(), this.treeKernelType);
-				graph.addEdge(temp.getId(), v.getId(), edgeWeight);
+				supportGraph.addEdge(v, temp, weight);
 			}
 		}
 	}
-
-	private void computeInDegVertexCentrality(WsdGraph graph) {
-		// Weight vertexes by indegree centrality
-		ArrayList<WsdVertex> vertices = graph.getVerticesList();
-		int nVertici = vertices.size();
-		for (int i = 0; i < nVertici; i++) {
-			double indegreeCentrality;
-			double indegree = graph.inDegreeOf(vertices.get(i));
-			indegreeCentrality = indegree / nVertici;
-			graph.getVertex(vertices.get(i).getId()).setInDegCentrality(indegreeCentrality);			
-		}
-		
-	}
 	
-	private void computeKppVertexCentrality(WsdGraph graph) {
+	private void computeKppVertexCentrality(MyGraph graph) {
 		// Weight vertexes by kpp centrality
-		ArrayList<WsdVertex> vertices = graph.getVerticesList();
-		int nVertici = vertices.size();
-		for (int i = 0; i < nVertici; i++) {
+		ArrayList<MyVertex> vertexes = graph.getNodes();
+		int size = vertexes.size();
+		for (int i = 0; i < size; i++) {
 			double kppCentrality = 0;
 			double distance = 0;
-			for (int j = 0; j < nVertici; j++) {
+			for (int j = 0; j < size; j++) {
 				if (i != j) {
-					double distPath = graph.distance(vertices.get(i), vertices.get(j));
+					double distPath = graph.distance(vertexes.get(i), vertexes.get(j));
 					// Check if path exists (or edge)
 					if (distPath > 0)
 						distance += distPath;
 				}
 			}
-			if (nVertici > 1)
-				kppCentrality = distance / (nVertici - 1);
-			graph.getVertex(vertices.get(i).getId()).setKppCentrality(kppCentrality);			
+			if (size > 1)
+				kppCentrality = distance / (size - 1);
+			vertexes.get(i).setCentrality(kppCentrality);			
 		}
 	}
 	
@@ -600,75 +568,6 @@ public class WsdExecutor {
 		}
 		return pagerank + alpha * sum;
 	}
-	
-	/**
-	 * Create and add vertices to the given graph. Vertices represents wordNet glosses for the words of the sentence
-	 * @param graph
-	 * @param sentenceIndex
-	 * @param searchTerm
-	 * @param originalWord
-	 * @param posTag
-	 * @param lemmaWord
-	 * @param params
-	 */
-	private void createNodes(WsdGraph graph, int sentenceIndex, String searchTerm, String originalWord, String posTag, String[] lemmaWord, String params){
-    	
-		//for all the WordNet glosses of that word and its lemma
-		for(IWordID wordId : this.wordnet.getWordsIds(searchTerm, posTag)) {
-			String[] glossAndSenseKey = this.wordnet.getGloss(wordId);
-			
-			String[] glossExamples = glossAndSenseKey[0].split("\""); //separates glosses form examples
-			String senseKey = glossAndSenseKey[1];
-			//compute dependency trees for the gloss
-			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(glossExamples[0]);
-			if(treeRepresentations.size()>1){
-				//if the gloss is composed by multiple sentences, there could be more dependency tree
-				//in this case a message is given and only the first tree is considered
-				System.out.println("More than one tree representation for a gloss of \""+searchTerm+"\" ("+glossExamples[0]+") computed. Took the first one.");
-			}
-			ArrayList<String> examples = new ArrayList<String>();
-			if(this.saveExamples){//store the examples
-				
-				for(int i = 1; i < glossExamples.length; i++){
-					String example = glossExamples[i].trim();
-					if(example.length()>1){//remove [;] generated by splitting glosses
-						examples.add(example);
-					}
-				}
-			}
-			graph.addVertex(sentenceIndex, searchTerm, originalWord, posTag, glossExamples[0], senseKey, params, lemmaWord, examples, wordId, treeRepresentations.get(0).toString());
-		}
-		
-	}
-	
-	
-	/**
-	 * Create and add edges to the given graph. The edges weights are calculated how?
-	 * @param graph
-	 */
-	private void createEdges(WsdGraph graph){
-		//Edge creation
-		ArrayList<WsdVertex> vertices = graph.getVerticesList();
-		int nVertici = vertices.size();
-		for(int i = 0; i < nVertici; i++){
-			
-			for(int j = i+1; j< nVertici; j++){
-				//doesn't create edges between vertexes representing the same word 
-				if( vertices.get(i).getSentenceIndex() != vertices.get(j).getSentenceIndex()){
-					// Se due sensi disambiguano due sentence index diversi e hanno la stessa gloss key allora ha senso computare
-					if ( ! ( vertices.get(i).getGlossKey().equalsIgnoreCase(vertices.get(j).getGlossKey()))){
-
-						// Compute similarity here
-						double edgeWeight = this.kelp.computeTreeSimilarity(vertices.get(i).getTreeGlossRepr(),
-								vertices.get(j).getTreeGlossRepr(), this.treeKernelType);
-						
-						graph.addEdge(vertices.get(i).getId(), vertices.get(j).getId(), edgeWeight);
-					}
-				}
-			}
-		}
-	}
-
 	
 	/**
 	 * Take the solution given by the tsp solver and create an output file that specifies the sense chosen
@@ -736,31 +635,6 @@ public class WsdExecutor {
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 			System.err.println(e);
 		}
-	}
-	
-	public void enableSaveGml(){
-		this.saveGml = true;
-	}
-	public void enableVerboseMode(){
-		this.verbose = true;
-	}
-	public void disableVerboseMode(){
-		this.verbose = false;
-	}
-	public void enableEvaluationMode(){
-		this.evaluation = true;
-	}
-	public void disableEvaluationMode(){
-		this.evaluation = false;
-	}
-	public void enableSaveExamples(){
-		this.saveExamples = true;
-	}
-	public void enableSolver(){
-		this.runSolver = true;
-	}
-	public void disableSaveExamples(){
-		this.saveExamples = false;
 	}
 	
 	public boolean getRunSolver(){

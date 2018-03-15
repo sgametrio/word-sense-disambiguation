@@ -59,6 +59,27 @@ public class WsdGraph extends SimpleWeightedGraph<WsdVertex, Integer> {
 		}
 	}
 	
+	/**
+	 * Add an edge between nodes assigning it the given weight
+	 * @param v1: source vertex
+	 * @param v2: target vertex
+	 * @param weight: edge weight
+	 */
+	public void createEdge(WsdVertex v1, WsdVertex v2, double weight){
+		
+		if(this.idToNode.containsKey(v1.getId()) && this.idToNode.containsKey(v2.getId())){
+			
+			this.addEdge(v1.getId(), v2.getId(), progressiveEdgeId);
+			this.setEdgeWeight(progressiveEdgeId, weight);
+			progressiveEdgeId++;	
+			
+		}else{
+			
+			System.out.println("Inexistent nodes in graph");
+			
+		}
+	}
+	
 	/** FUNCIONS
 	 * Add new vertex to the graph
 	 * @param word: the word the vertex is representing

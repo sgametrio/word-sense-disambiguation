@@ -63,5 +63,7 @@ public class Globals {
 	
 	public static final String disambiguationCentrality = kppCentrality;
 
+	public static boolean saveGml = true;
+
 	
 }

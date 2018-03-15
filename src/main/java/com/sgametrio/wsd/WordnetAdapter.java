@@ -93,7 +93,7 @@ public class WordnetAdapter {
 			
 		}
 		
-		//METHODS		
+		//METHODS
 		/**
 		 * Returns a list containing all the glosses of the given word for the given POS
 		 * @param wordID: the word for which the glosses have to be retrieved
@@ -107,6 +107,24 @@ public class WordnetAdapter {
 				String[] glossAndSenseKey = {dictword.getSynset().getGloss(), dictword.getSenseKey().toString()};
 				dict.close();
 				return glossAndSenseKey;
+				
+			}catch(IOException e){
+				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
+				System.err.println(e);
+			}catch(NullPointerException e){
+				System.err.println("Word \""+wordID.toString()+"\" not found in WordNet.");
+			}
+			return null;
+		}
+		
+		public String getOnlyGloss(IWordID wordID){	
+			try{
+				
+				dict.open();	
+				IWord dictword = dict.getWord(wordID);
+				String gloss = dictword.getSynset().getGloss();
+				dict.close();
+				return gloss;
 				
 			}catch(IOException e){
 				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
@@ -221,6 +239,27 @@ public class WordnetAdapter {
 		//SETTER METHODS
 		public void setWordnetHome(String wordnetHomePath){
 			this.wordnetHome = wordnetHomePath;
+		}
+
+		public ArrayList<IWord> getWordsList(String word, String pos) {
+			ArrayList<IWord> words = new ArrayList<IWord>();
+			try{			
+				dict.open();	
+				POS wnPos = this.posMap.get(pos);		
+				IIndexWord idxWord = dict.getIndexWord(word, wnPos);
+				if (idxWord != null) {
+					for(IWordID wordID: idxWord.getWordIDs()){
+						words.add(dict.getWord(wordID));
+					}
+				}
+				dict.close();	
+			}catch(IOException e){
+				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
+				System.err.println(e);
+			}catch(NullPointerException e){
+				System.err.println("Word \""+word+"\" with POS " + pos + "not found in WordNet.");
+			}
+			return words;
 		}
 		
 }

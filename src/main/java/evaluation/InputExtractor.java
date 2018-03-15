@@ -55,4 +55,43 @@ public class InputExtractor {
 		}
 		return pos_lemmaWordIndexParams;
 	}
+	
+	public static ArrayList<InputInstance> myExtractInput(Node xmlSentence){
+		ArrayList<InputInstance> instances = new ArrayList<InputInstance>();
+		
+		if (xmlSentence.getNodeType() == Node.ELEMENT_NODE) {
+			int wordIndex = 1;	
+			Element s = (Element) xmlSentence;
+			NodeList children = s.getChildNodes(); 
+			int numberOfInstances = 0;
+			for(int i = 0; i<children.getLength(); i++){
+				Node child = children.item(i);
+				if(child.getNodeType()== Node.ELEMENT_NODE){
+					Element elementChild = (Element) child;
+					String lemma = elementChild.getAttribute("lemma");
+					String pos = elementChild.getAttribute("pos");
+					String params = "";
+					//if the word has to be disambiguated and evaluated it will have params
+					if(elementChild.getTagName().equalsIgnoreCase("instance")){
+						params = elementChild.getAttribute("id");
+						numberOfInstances++;
+					//if the word only has to be disambiguated it won't have params
+					}else if(elementChild.getTagName().equalsIgnoreCase("wf")){
+						params = null;
+					}
+					InputInstance instance = new InputInstance();
+					instance.id = params;
+					instance.lemma = lemma;
+					instance.index = wordIndex;
+					instance.pos = pos;
+					instance.term = child.getTextContent();
+					instances.add(instance);
+					wordIndex++;
+				}
+			}
+			if(numberOfInstances == 1)
+				System.out.println("Only 1 instance to disambiguate");
+		}
+		return instances;
+	}
 }
