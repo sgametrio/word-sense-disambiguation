@@ -101,9 +101,9 @@ public class WsdLauncher {
 			
 			//launch Navigli's evaluation framework script
 			if (centrality) {
-				launchEvaluator(Globals.currentGoldFile, Globals.resultsPath+wsdExecutor.getFileNameCentrality()+Globals.resultsFileName);
+				launchEvaluator(Globals.currentGoldFile, Globals.resultsPath+Globals.fileNameCentrality+Globals.resultsFileName);
 			} else {
-				launchEvaluator(Globals.currentGoldFile, Globals.resultsPath+wsdExecutor.getFileName()+Globals.resultsFileName);
+				launchEvaluator(Globals.currentGoldFile, Globals.resultsPath+Globals.fileName+Globals.resultsFileName);
 			}			
 		} catch (Exception e) {
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");

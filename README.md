@@ -4,6 +4,7 @@ Use vertex centrality measures combined with sintactic similarity computed dista
 
 ## Possible further ways
 * Additional nodes based on relations between senses (Done, but how?)
+* (check) do not make duplicate edges, if it connects two sense of two different words then create node and connect every vertex to it
 * Extend scorer to create a .json file with more statistics to improve logic
 	* Completely wrong disambiguations
 	* Stats for POS

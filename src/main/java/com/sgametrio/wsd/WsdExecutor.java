@@ -41,9 +41,7 @@ public class WsdExecutor {
 	private KelpAdapter kelp = null;
 	
 	//saving params
-	private String fileName = "senseval3_subTrees";
 	private  int progrSaveName = 1;
-	private String fileNameCentrality = "centrality";
 	private String fileNameSentences = "sentences";
 	private  int progrSaveNameCentrality = 1;
 	
@@ -97,7 +95,7 @@ public class WsdExecutor {
 			if (sentences) {
 				graph.saveToGML(Globals.gmlPath, this.fileNameSentences+this.progrSaveName);
 			} else {
-				graph.saveToGML(Globals.gmlPath, this.fileName+this.progrSaveName);
+				graph.saveToGML(Globals.gmlPath, Globals.fileName+this.progrSaveName);
 			}
 		}
 		
@@ -107,7 +105,7 @@ public class WsdExecutor {
 			this.printCentralityDisambiguation(graph, sentences);
 		} else {
 			//save to gtsp (NEEDED). The solver and all dependent methods are invoked only if the graph is not empty
-			if(graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, this.fileName+this.progrSaveName)){
+			if(graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+this.progrSaveName)){
 				this.setTSPSolver();
 				if(this.getRunSolver()) {
 					if(this.runSolver()){
@@ -162,7 +160,7 @@ public class WsdExecutor {
 		}
 		// Print results
 		//System.out.print("Printing to file.. ");
-		this.printMapToFile(disambiguationMap, this.fileNameCentrality, this.evaluation, sentences);
+		this.printMapToFile(disambiguationMap, Globals.fileNameCentrality, this.evaluation, sentences);
 		// results in .key format
 	}
 
@@ -250,10 +248,10 @@ public class WsdExecutor {
 			while ((line = oldFileReader.readLine()) != null) {
 				//System.out.println(line);
 				if (line.contains("PROBLEM_FILE")){
-					line = "echo \"PROBLEM_FILE = " + Globals.GTSPLIBDirectory + this.fileName+this.progrSaveName+".gtsp\" > $par";
+					line = "echo \"PROBLEM_FILE = " + Globals.GTSPLIBDirectory + Globals.fileName+this.progrSaveName+".gtsp\" > $par";
 				}
 				if (line.contains("OUTPUT_TOUR_FILE")){
-					line = "echo \"OUTPUT_TOUR_FILE = " + Globals.GTOURSDirectory + this.fileName+this.progrSaveName+".tour\" >> $par";
+					line = "echo \"OUTPUT_TOUR_FILE = " + Globals.GTOURSDirectory + Globals.fileName+this.progrSaveName+".tour\" >> $par";
 				}
 				if (line.contains("RUNS")) {
 					line = "echo \"RUNS = " + Globals.runs + "\" >> $par";
@@ -427,7 +425,8 @@ public class WsdExecutor {
 			this.createEdges(supportGraph);
 			this.addSupportNodes(supportGraph, depth);
 			this.computeVertexCentrality(supportGraph);
-			//supportGraph.saveToGML("GML/", "supportGraph");
+			if (this.saveGml) 
+				supportGraph.saveToGML("GML/", "supportGraph" + this.progrSaveName);
 			this.copyCentrality(supportGraph.getVerticesList(), graph.getVerticesList());
 		}
 		
@@ -529,8 +528,8 @@ public class WsdExecutor {
 			
 			//compute dependency trees for the gloss
 			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(glossExamples[0]);
-			// Più di un vertice correlato, creo il nodo e ci collego i vertici
-			for (WsdVertex vv1 : possibleVertexes) {
+			// Più di un vertice correlato, creo il nodo e gli collego i vertici
+			/*for (WsdVertex vv1 : possibleVertexes) {
 				int sentenceIndex1 = vv1.getSentenceIndex();
 				for (WsdVertex vv2 : possibleVertexes) {
 					if (vv2.getSentenceIndex() != sentenceIndex1) {
@@ -544,6 +543,13 @@ public class WsdExecutor {
 						graph.addEdge(temp.getId(), vv2.getId(), edgeWeight);
 					}
 				}
+			}*/
+			WsdVertex temp = graph.addVertex(w, treeRepresentations.get(0).toString());
+			// Collego tutti i vertici a quel nodo
+			for (WsdVertex v : possibleVertexes) {
+				double edgeWeight = this.kelp.computeTreeSimilarity(temp.getTreeGlossRepr(),
+						v.getTreeGlossRepr(), this.treeKernelType);
+				graph.addEdge(temp.getId(), v.getId(), edgeWeight);
 			}
 		}
 	}
@@ -664,13 +670,8 @@ public class WsdExecutor {
 			for(int j = i+1; j< nVertici; j++){
 				//doesn't create edges between vertexes representing the same word 
 				if( vertices.get(i).getSentenceIndex() != vertices.get(j).getSentenceIndex()){
-					if (vertices.get(i).getSentenceIndex() == -1 || vertices.get(j).getSentenceIndex() == -1) {
-						// Support nodes involved -> don't compute, set edgeweight
-						double edgeWeight = 1;
-						graph.addEdge(vertices.get(i).getId(), vertices.get(j).getId(), edgeWeight);
-						
 					// Se due sensi disambiguano due sentence index diversi e hanno la stessa gloss key allora ha senso computare
-					} else if ( ! ( vertices.get(i).getGlossKey().equalsIgnoreCase(vertices.get(j).getGlossKey()))){
+					if ( ! ( vertices.get(i).getGlossKey().equalsIgnoreCase(vertices.get(j).getGlossKey()))){
 
 						// Compute similarity here
 						double edgeWeight = this.kelp.computeTreeSimilarity(vertices.get(i).getTreeGlossRepr(),
@@ -698,10 +699,10 @@ public class WsdExecutor {
 			
 			//open reader for the tspSolver output file
 			BufferedReader tourFileReader = new BufferedReader(
-					new FileReader(Globals.tspSolverPathToGTOURS+this.fileName+this.progrSaveName+".tour"));
+					new FileReader(Globals.tspSolverPathToGTOURS+Globals.fileName+this.progrSaveName+".tour"));
 			//open writer to write results
 			PrintWriter keyFileWriter = new PrintWriter(
-					new FileWriter(Globals.resultsPath + this.fileName+Globals.resultsFileName, true));
+					new FileWriter(Globals.resultsPath + Globals.fileName+Globals.resultsFileName, true));
 			//sorted map used to order words by their position in the sentence
 			TreeMap<Integer, String[]> sortMap = new TreeMap<Integer, String[]>();
 			String line;
@@ -742,7 +743,7 @@ public class WsdExecutor {
 			
 		} catch (FileNotFoundException e) {
 			//output file of tsp solver not created, the graph size wasn't >1
-			log.write(this.fileName+this.progrSaveName+"\n");
+			log.write(Globals.fileName+this.progrSaveName+"\n");
 			log.close();
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 			System.err.println(e);
@@ -776,17 +777,11 @@ public class WsdExecutor {
 	public void disableSaveExamples(){
 		this.saveExamples = false;
 	}
-	public String getFileName(){
-		return this.fileName;
-	}
 	
 	public boolean getRunSolver(){
 		return this.runSolver;
 	}
 	
-	public void setFileName(String newFileName){
-		this.fileName = newFileName;
-	}
 	public void setTreeKernelType(String kernelType){
 		switch(kernelType){
 			case "subTree":
@@ -804,12 +799,6 @@ public class WsdExecutor {
 			default:
 				this.treeKernelType = "subTree";
 				System.err.println("defined kernelType \""+kernelType+"\" has not been found. Used default "+treeKernelType);
-		}
-		
-	}
-
-
-	public String getFileNameCentrality() {
-		return this.fileNameCentrality;
+		}	
 	}
 }

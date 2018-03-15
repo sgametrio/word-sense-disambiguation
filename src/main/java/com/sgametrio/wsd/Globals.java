@@ -18,8 +18,10 @@ public class Globals {
 	public static final String Senseval2 = "senseval2";
 	public static final String Senseval3 = "senseval3";
 	public static final String MiniSenseval3 = "mini-senseval3";
-	// Change this if you want to change evaluation dataset
-	public static final String currentDataset = All;
+	/**
+	 *  Change this if you want to change current evaluation dataset
+	 */
+	public static final String currentDataset = MiniSenseval3;
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
 
@@ -42,9 +44,12 @@ public class Globals {
 	public static final String gtspPath = tspSolverPathToGTSPLIB;
 	public static final String tourPath = tspSolverPathToGTOURS;
 	
-	public static final String fileNameCentrality = "centrality";
-	public static final String fileName = "senseval3_subTrees";
+	public static final String fileNameCentrality = currentDataset + "_centrality";
+	public static final String fileName = currentDataset + "_subTrees";
 
+	/**
+	 * Configurable solver runs
+	 */
 	public static final int runs = 1;
 
 	// Available centrality measures
