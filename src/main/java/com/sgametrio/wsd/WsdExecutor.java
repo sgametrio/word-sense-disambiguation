@@ -479,7 +479,7 @@ public class WsdExecutor {
 		Map<IWord, ArrayList<WsdVertex>> relatedWords = new HashMap<IWord, ArrayList<WsdVertex>>();
 		ArrayList<WsdVertex> vertexes = graph.getVerticesList();
 		for (WsdVertex v : vertexes) {
-			// TODO: Con che relazione ha senso cercare le parole?
+			// Prendo tutte le word dal synset, e dai synsets correlati
 			ArrayList<IWord> vRelatedWords1 = this.wordnet.getSynsetWords(v.getWordId());
 			ArrayList<IWord> vRelatedWords2 = this.wordnet.getRelatedSynsetWords(v.getWordId());
 			ArrayList<IWord> vRelatedWords = new ArrayList<IWord>();
