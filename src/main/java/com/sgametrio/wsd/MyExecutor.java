@@ -74,7 +74,7 @@ public class MyExecutor {
 		//save gml (optional)
 		
 		if(Globals.saveGml){
-			graph.saveToGML(Globals.gmlPath + Globals.fileName+this.progrSaveName);
+			graph.saveToGML(Globals.gmlPath + Globals.fileName+this.progrSaveName + ".gml");
 		}
 		
 		this.createDir(Globals.resultsPath);
@@ -368,7 +368,7 @@ public class MyExecutor {
 			this.addSupportNodes(supportGraph, depth);
 			this.computeVertexCentrality(supportGraph);
 			if (Globals.saveGml) 
-				supportGraph.saveToGML(Globals.gmlPath + "supportGraph" + this.progrSaveName);
+				supportGraph.saveToGML(Globals.gmlPath + "supportGraph" + this.progrSaveName + ".gml");
 			this.copyCentrality(supportGraph, graph);
 		}
 		
@@ -467,16 +467,16 @@ public class MyExecutor {
 		ArrayList<MyVertex> vertexes = supportGraph.getNodes();
 		for (MyVertex v : vertexes) {
 			// Prendo tutte le word dal synset, e dai synsets correlati
-			ArrayList<IWord> vRelatedWords = this.wordnet.getSynsetWords(v.getWord().getID());
+			ArrayList<IWord> vRelatedWords1 = this.wordnet.getSynsetWords(v.getWord().getID());
 			ArrayList<IWord> vRelatedWords2 = this.wordnet.getRelatedSynsetWords(v.getWord().getID());
-			/*ArrayList<IWord> vRelatedWords = new ArrayList<IWord>();
+			ArrayList<IWord> vRelatedWords = new ArrayList<IWord>();
 			for (IWord word : vRelatedWords1) {
 				vRelatedWords.add(word);
 			}
 			for (IWord word : vRelatedWords2) {
 				if (!vRelatedWords.contains(word))
 					vRelatedWords.add(word);
-			}*/
+			}
 
 			for (IWord word : vRelatedWords) {
 				// Se la parola esiste già nel mio grafo non devo aggiungerla

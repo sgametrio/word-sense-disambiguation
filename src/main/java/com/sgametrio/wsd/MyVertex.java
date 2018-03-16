@@ -148,13 +148,13 @@ public class MyVertex {
 
 	public String toGML() {
 		String gml = "";
-		gml += "node [\n"
-				+ "id " + this.getId() + "\n"
-				+ "label " + this.getWord().getLemma() + "_" + this.getSentenceIndex() + "-" + this.getId() + "\n"
-				+ "centrality " + this.getCentrality() + "\n"
-				+ "gloss_key " + this.getGlossKey() + "\n"
-				+ "gloss " + this.getGloss() + "\n"
-				+ "]\n";
+		gml += "\tnode [\n"
+				+ "\t\tid " + this.getId() + "\n"
+				+ "\t\tlabel \"" + this.getWord().getLemma() + "_" + this.getSentenceIndex() + "-" + this.getId() + "\"\n"
+				+ "\t\tcentrality \"" + this.getCentrality() + "\"\n"
+				+ "\t\tgloss_key \"" + this.getGlossKey() + "\"\n"
+				+ "\t\tgloss \"" + this.getGloss().split(";")[0] + "\"\n"
+				+ "\t]\n";
 		return gml;
 	}
 }

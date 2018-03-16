@@ -64,11 +64,12 @@ public class MyGraph {
 		}
 		for (MyVertex v : this.getNodes()) {
 			for (MyEdge e : v.getEdges()) {
-				gml += "edge [\n"
-						+ "source " + v.getId() + "\n"
-						+ "target " + e.getDest().getId() + "\n"
-						+ "weight " + e.getWeight() + "\n"
-						+ "]\n";
+				gml += "\tedge [\n"
+						+ "\t\tid " + e.getId() + "\n"
+						+ "\t\tsource " + v.getId() + "\n"
+						+ "\t\ttarget " + e.getDest().getId() + "\n"
+						+ "\t\tweight " + e.getWeight() + "\n"
+						+ "\t]\n";
 			}
 		}
 		gml += "]\n";
