@@ -48,10 +48,7 @@ public class MyExecutor {
 	
 	//execution params
 	private String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
-	private boolean saveExamples = false;
-	private boolean saveGml = false;
-	private boolean runSolver = false;
-	private boolean evaluation = true;
+
 	public boolean verbose = false;
 	
 	private int trial = 1;
@@ -86,6 +83,17 @@ public class MyExecutor {
 			this.printCentralityDisambiguation(graph, false);
 		}
 		
+		/* TODO: Make this working with solver: saveToGTSP and generateOutputFile
+		if (Globals.runSolver) {
+			if(graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+this.progrSaveName)){
+				this.setTSPSolver();
+				if(this.runSolver()){
+					this.generateOutputFile(graph);
+				}	
+			}
+		}
+		*/
+		
 		System.out.println(this.progrSaveName);
 		//the following must be the last instruction of this method
 		this.progrSaveName++;
@@ -115,7 +123,7 @@ public class MyExecutor {
 		}
 		// Print results
 		//System.out.print("Printing to file.. ");
-		this.printMapToFile(disambiguationMap, Globals.fileNameCentrality, this.evaluation, sentences);
+		this.printMapToFile(disambiguationMap, Globals.fileNameCentrality, Globals.evaluation, sentences);
 		// results in .key format
 
 	}
@@ -359,7 +367,7 @@ public class MyExecutor {
 			this.myCreateEdges(supportGraph);
 			this.addSupportNodes(supportGraph, depth);
 			this.computeVertexCentrality(supportGraph);
-			if (this.saveGml) 
+			if (Globals.saveGml) 
 				supportGraph.saveToGML(Globals.gmlPath + "supportGraph" + this.progrSaveName);
 			this.copyCentrality(supportGraph, graph);
 		}
@@ -459,16 +467,16 @@ public class MyExecutor {
 		ArrayList<MyVertex> vertexes = supportGraph.getNodes();
 		for (MyVertex v : vertexes) {
 			// Prendo tutte le word dal synset, e dai synsets correlati
-			ArrayList<IWord> vRelatedWords1 = this.wordnet.getSynsetWords(v.getWord().getID());
+			ArrayList<IWord> vRelatedWords = this.wordnet.getSynsetWords(v.getWord().getID());
 			ArrayList<IWord> vRelatedWords2 = this.wordnet.getRelatedSynsetWords(v.getWord().getID());
-			ArrayList<IWord> vRelatedWords = new ArrayList<IWord>();
+			/*ArrayList<IWord> vRelatedWords = new ArrayList<IWord>();
 			for (IWord word : vRelatedWords1) {
 				vRelatedWords.add(word);
 			}
 			for (IWord word : vRelatedWords2) {
 				if (!vRelatedWords.contains(word))
 					vRelatedWords.add(word);
-			}
+			}*/
 
 			for (IWord word : vRelatedWords) {
 				// Se la parola esiste già nel mio grafo non devo aggiungerla
@@ -613,7 +621,7 @@ public class MyExecutor {
 				Map.Entry<Integer, String[]> pair = (Map.Entry<Integer, String[]>)it.next();
 				String[] wordGloss_keyGlosParamsElement = pair.getValue();
 				
-				if(this.evaluation){ //evaluation mode output format
+				if(Globals.evaluation){ //evaluation mode output format
 					if(wordGloss_keyGlosParamsElement[3] != null){
 						keyFileWriter.write(pair.getValue()[3]+" "+pair.getValue()[1]+"\n");
 					}
@@ -635,10 +643,6 @@ public class MyExecutor {
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 			System.err.println(e);
 		}
-	}
-	
-	public boolean getRunSolver(){
-		return this.runSolver;
 	}
 	
 	public void setTreeKernelType(String kernelType){
