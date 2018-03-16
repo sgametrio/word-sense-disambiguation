@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import edu.mit.jwi.item.IWord;
 
 public class MyGraph {
+	private String phrase = "";
+
 	private ArrayList<MyVertex> vertexes;
 
 	public MyGraph() {
@@ -57,7 +59,9 @@ public class MyGraph {
 	public void saveToGML(String path) {
 		// Assuming path to file exists
 		String gml = "";
-		gml += "graph [\n";
+		gml += "graph [\n"
+				+ "\tcomment \"" + getPhrase().replaceAll("\"", "") + "\"\n"
+				+ "\tlabel \"" + getPhrase().replaceAll("\"", "") + "\"\n";
 		// Add nodes, and then edges
 		for (MyVertex v : this.getNodes()) {
 			gml += v.toGML();
@@ -91,5 +95,13 @@ public class MyGraph {
 			}
 		}
 		return false;
+	}
+	
+	public String getPhrase() {
+		return phrase;
+	}
+
+	public void setPhrase(String phrase) {
+		this.phrase = phrase;
 	}
 }

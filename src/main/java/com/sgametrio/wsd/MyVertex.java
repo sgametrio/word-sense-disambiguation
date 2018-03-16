@@ -28,6 +28,9 @@ public class MyVertex {
 		this.id = progressiveId++;
 		this.sentenceIndex = -1;
 		this.word = word;
+		this.gloss = "";
+		this.searchTerm = "";
+		this.treeRep = "";
 		this.adjList = new ArrayList<MyEdge>();
 	}
 	
@@ -36,6 +39,8 @@ public class MyVertex {
 		this.sentenceIndex = -1;
 		this.word = word;
 		this.treeRep = treeRep;
+		this.gloss = "";
+		this.searchTerm = "";
 		this.adjList = new ArrayList<MyEdge>();
 	}
 	
@@ -50,6 +55,8 @@ public class MyVertex {
 		this.sentenceIndex = index;
 		this.searchTerm = searchTerm;
 		this.word = word;
+		this.gloss = "";
+		this.treeRep = "";
 		this.adjList = new ArrayList<MyEdge>();
 	}
 	
@@ -153,7 +160,7 @@ public class MyVertex {
 				+ "\t\tlabel \"" + this.getWord().getLemma() + "_" + this.getSentenceIndex() + "-" + this.getId() + "\"\n"
 				+ "\t\tcentrality \"" + this.getCentrality() + "\"\n"
 				+ "\t\tgloss_key \"" + this.getGlossKey() + "\"\n"
-				+ "\t\tgloss \"" + this.getGloss().split(";")[0] + "\"\n"
+				+ "\t\tgloss \"" + this.getGloss().replaceAll("\"", "") + "\"\n"
 				+ "\t]\n";
 		return gml;
 	}

@@ -20,6 +20,7 @@ import edu.mit.jwi.item.ISynsetID;
 import edu.mit.jwi.item.IWord;
 import edu.mit.jwi.item.IWordID;
 import edu.mit.jwi.item.POS;
+import edu.mit.jwi.item.Pointer;
 import edu.mit.jwi.item.Synset;
 
 public class WordnetAdapter {
@@ -188,7 +189,7 @@ public class WordnetAdapter {
 			return word;
 		}
 		
-		public ArrayList<IWord> getSynsetWords(IWordID wordId) {
+		public ArrayList<IWord> getSynonyms(IWordID wordId) {
 			ArrayList<IWord> words = new ArrayList<IWord>();
 			try {
 				dict.open();
@@ -205,11 +206,12 @@ public class WordnetAdapter {
 		}
 		
 		/**
-		 * Return IWords list of semantically related synset of wordId synset
+		 * Return IWords list of `relationship` related synset of wordId synset
 		 * @param wordId
+		 * @param relationship
 		 * @return list containing IWords from semantically related synset of wordId synset
 		 */
-		public ArrayList<IWord> getRelatedSynsetWords(IWordID wordId) {
+		public ArrayList<IWord> getRelatedWords(IWordID wordId) {
 			ArrayList<IWord> words = new ArrayList<IWord>();
 			try {
 				dict.open();

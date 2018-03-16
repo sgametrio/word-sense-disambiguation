@@ -29,6 +29,7 @@ import java.util.TreeSet;
 
 import edu.mit.jwi.item.IWord;
 import edu.mit.jwi.item.IWordID;
+import edu.mit.jwi.item.Pointer;
 import edu.stanford.nlp.trees.Tree;
 import evaluation.InputInstance;
 
@@ -70,14 +71,18 @@ public class MyExecutor {
 		ArrayList<InputInstance> selectedInstances = this.mySelectPos(instances);
 
 		//create the graph
+		String phrase = "";
+		for (InputInstance i : instances) {
+			phrase += i.term + " ";
+		}
 		MyGraph graph = this.createDisambiguationGraph(selectedInstances, centrality);
+		graph.setPhrase(phrase);
 		//save gml (optional)
 		
 		if(Globals.saveGml){
 			graph.saveToGML(Globals.gmlPath + Globals.fileName+this.progrSaveName + ".gml");
 		}
 		
-		this.createDir(Globals.resultsPath);
 		// Use centrality to disambiguate senses in a word
 		if (centrality) {
 			this.printCentralityDisambiguation(graph, false);
@@ -363,7 +368,7 @@ public class MyExecutor {
 		this.myCreateEdges(graph);
 		if (centrality) {
 			// check if we can compute distances on support nodes
-			int depth = 1;
+			int depth = 2;
 			this.myCreateEdges(supportGraph);
 			this.addSupportNodes(supportGraph, depth);
 			this.computeVertexCentrality(supportGraph);
@@ -463,12 +468,13 @@ public class MyExecutor {
 	 * @param depth
 	 */
 	private void addSupportNodes(MyGraph supportGraph, int depth) {
+		if (depth == 0) return;
 		Map<IWord, ArrayList<MyVertex>> relatedWords = new HashMap<IWord, ArrayList<MyVertex>>();
 		ArrayList<MyVertex> vertexes = supportGraph.getNodes();
 		for (MyVertex v : vertexes) {
 			// Prendo tutte le word dal synset, e dai synsets correlati
-			ArrayList<IWord> vRelatedWords1 = this.wordnet.getSynsetWords(v.getWord().getID());
-			ArrayList<IWord> vRelatedWords2 = this.wordnet.getRelatedSynsetWords(v.getWord().getID());
+			ArrayList<IWord> vRelatedWords1 = this.wordnet.getSynonyms(v.getWord().getID());
+			ArrayList<IWord> vRelatedWords2 = this.wordnet.getRelatedWords(v.getWord().getID());
 			ArrayList<IWord> vRelatedWords = new ArrayList<IWord>();
 			for (IWord word : vRelatedWords1) {
 				vRelatedWords.add(word);
@@ -526,6 +532,7 @@ public class MyExecutor {
 				supportGraph.addEdge(v, temp, weight);
 			}
 		}
+		this.addSupportNodes(supportGraph, depth-1);
 	}
 	
 	private void computeKppVertexCentrality(MyGraph graph) {

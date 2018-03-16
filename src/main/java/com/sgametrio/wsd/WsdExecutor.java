@@ -29,6 +29,7 @@ import java.util.TreeSet;
 
 import edu.mit.jwi.item.IWord;
 import edu.mit.jwi.item.IWordID;
+import edu.mit.jwi.item.Pointer;
 import edu.stanford.nlp.trees.Tree;
 
 import com.sgametrio.wsd.KelpAdapter;
@@ -480,8 +481,8 @@ public class WsdExecutor {
 		ArrayList<WsdVertex> vertexes = graph.getVerticesList();
 		for (WsdVertex v : vertexes) {
 			// Prendo tutte le word dal synset, e dai synsets correlati
-			ArrayList<IWord> vRelatedWords1 = this.wordnet.getSynsetWords(v.getWordId());
-			ArrayList<IWord> vRelatedWords2 = this.wordnet.getRelatedSynsetWords(v.getWordId());
+			ArrayList<IWord> vRelatedWords1 = this.wordnet.getSynonyms(v.getWordId());
+			ArrayList<IWord> vRelatedWords2 = this.wordnet.getRelatedWords(v.getWordId());
 			ArrayList<IWord> vRelatedWords = new ArrayList<IWord>();
 			for (IWord word : vRelatedWords1) {
 				vRelatedWords.add(word);
