@@ -1,0 +1,59 @@
+#!/bin/bash
+# Usage: runGTSP+
+
+run="runGLKH"
+
+$run 35si175_x05 5574
+$run 35si175_x10 5574
+$run 35si175_x15 5574
+$run 35si175_x20 5574
+$run 35si175_x25 5574
+$run 35si175_x30 5581 # Improved from 5586
+$run 35si175_x35 5610 # Improved from 5633
+$run 35si175_x40 5610 # Improved from 5635
+$run 35si175_x45 5610 # Improved from 5710
+$run 35si175_x50 5610 # Improved from 5626
+$run 35si175_x55 5638 # Improved from 5764
+$run 35si175_x60 5638 # Improved from 5781
+$run 35si175_x65 5642 # Improved from 5712
+$run 35si175_x70 5646 # Improved from 5787
+$run 35si175_x75 5712 # Improved from 5784
+
+$run 53gil262_x05 1013
+$run 53gil262_x10 1013
+$run 53gil262_x15 1013 # Improved from 1015
+$run 53gil262_x20 1014 # Improved form 1017
+$run 53gil262_x25 1015 # Improved from 1018
+$run 53gil262_x30 1021 # Improved from 1022
+$run 53gil262_x35 1021
+$run 53gil262_x40 1021
+$run 53gil262_x45 1021 # Improved from 1026
+$run 53gil262_x50 1021 # Improved from 1028
+$run 53gil262_x55 1021 # Improved from 1022
+$run 53gil262_x60 1023
+$run 53gil262_x65 1023
+$run 53gil262_x70 1029 # Improved from 1041
+
+$run 64lin318_x05 21061
+$run 64lin318_x10 21114 # Improved from 21228
+$run 64lin318_x15 21114 # Improved from 21447
+$run 64lin318_x20 21127 # Improved from 21826
+$run 64lin318_x25 21208 # Improved from 22284
+$run 64lin318_x30 21323 # Improved from 22423
+$run 64lin318_x35 21323 # Improved from 22718
+$run 64lin318_x40 21453 # Improved from 22874
+$run 64lin318_x45 21689 # Improved from 22954
+$run 64lin318_x50 21689 # Improved from 23217
+$run 64lin318_x55 21689 # Improved from 23176
+
+$run 99d493_x05 20040 # Improved from 20042
+$run 99d493_x10 20094 # Improved from 20318
+$run 99d493_x15 20203 # Improved from 20413
+$run 99d493_x20 20269 # Improved from 20677
+$run 99d493_x25 20335 # Improved from 20800
+$run 99d493_x30 20343 # Improved from 20873
+
+$run 157rat783_x05 3286 # Improved from 3297
+$run 157rat783_x10 3318 # Improved from 3357
+$run 157rat783_x15 3339 # Improved from 3413
+$run 157rat783_x20 3341 # Improved from 3482

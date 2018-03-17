@@ -1,0 +1,25 @@
+# Usage: runGLKH problem_name [ optimum ]
+#!/bin/bash
+
+par=TMP/$1.pid$$.par
+
+echo "PROBLEM_FILE = GTSPLIB/mini-senseval3_subTrees23.gtsp" > $par
+echo "MAX_CANDIDATES = 4 SYMMETRIC" >> $par
+echo "MAX_SWAPS = 0" >> $par
+echo "MAX_TRIALS = 10000" >> $par
+if [ -n "$2" ]; then
+    echo "OPTIMUM = $2" >> $par
+fi
+echo "OUTPUT_TOUR_FILE = G-TOURS/mini-senseval3_subTrees23.tour" >> $par
+echo "POPULATION_SIZE = 10" >> $par
+echo "RUNS = 1" >> $par
+echo "SUBGRADIENT = NO" >> $par
+echo "SEED = 0" >> $par
+echo "TRACE_LEVEL = 1" >> $par
+
+mkdir -p PI_FILES
+mkdir -p TMP
+
+./GLKH $par $3
+
+/bin/rm -f $par

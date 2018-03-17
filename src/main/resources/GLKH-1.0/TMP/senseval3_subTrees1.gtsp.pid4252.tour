@@ -1,0 +1,45 @@
+NAME : senseval3_subTrees1.gtsp.pid4252.gtsp.21474838.tour
+COMMENT : Length = 21474838
+COMMENT : Found by LKH [Keld Helsgaun] Fri Mar  9 14:14:00 2018
+TYPE : TOUR
+DIMENSION : 37
+TOUR_SECTION
+1
+2
+3
+4
+11
+9
+10
+36
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+37
+5
+6
+7
+8
+-1
+EOF
