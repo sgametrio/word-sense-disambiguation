@@ -17,9 +17,9 @@ RUN mvn -B -o -T 1C package -DskipTests
 
 # Executor image (testing build)
 FROM openjdk:8-jre-alpine
-COPY --from=builder /app/target/*.jar /app/app.jar
+COPY --from=builder /app/target/wordsensedisambiguation-0.0.1-SNAPSHOT-jar-with-dependencies.jar /app/app.jar
 COPY --from=wsd-env /usr/local/WordNet-3.0 /usr/local/
 
 WORKDIR /app
 # RUN java command to execute jar
-CMD [ "java", "-jar", "./app.jar" ]
+CMD [ "java", "-jar", "app.jar" ]
