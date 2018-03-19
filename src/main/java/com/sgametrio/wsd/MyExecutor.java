@@ -61,6 +61,9 @@ public class MyExecutor {
 		this.kelp = new KelpAdapter();	
 	}
 	
+	public void closeDictionary() {
+		this.wordnet.closeDict();
+	}
 	/**
 	 * Calls all the functions needed to perform the disambiguation
 	 * @param instances a map having word POS as keys and an array containing

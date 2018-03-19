@@ -20,5 +20,5 @@ COPY --from=wsd-env /usr/local/WordNet-3.0 /usr/local/WordNet-3.0
 WORKDIR /app/target
 COPY --from=wsd-env /app/evaluation-datasets /app/target/src/main/resources/evaluation-datasets
 COPY --from=wsd-env /app/GLKH-1.0 /app/target/src/main/resources/GLKH-1.0
-# RUN java command to execute jar
+
 CMD [ "java", "-jar", "app.jar" ]

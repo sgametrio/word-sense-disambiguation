@@ -13,6 +13,9 @@ import java.util.Map;
 
 import edu.mit.jwi.Dictionary;
 import edu.mit.jwi.IDictionary;
+import edu.mit.jwi.IRAMDictionary;
+import edu.mit.jwi.RAMDictionary;
+import edu.mit.jwi.data.ILoadPolicy;
 import edu.mit.jwi.item.IIndexWord;
 import edu.mit.jwi.item.ISenseKey;
 import edu.mit.jwi.item.ISynset;
@@ -28,7 +31,7 @@ public class WordnetAdapter {
 		private String wordnetHome = "/usr/local/WordNet-3.0";//path to WordNet home folder
 		private String path = wordnetHome + File.separator + "dict";
 		private URL url; 
-		private IDictionary dict;
+		private IRAMDictionary dict;
 		private Map<String, POS> posMap = new HashMap<String, POS>(); //mapping of StanfordDependencyParser POS tag to WordNet ones
 
 		/**CONSTRUCTORS
@@ -41,10 +44,25 @@ public class WordnetAdapter {
 				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 				System.err.println(e);
 			}	
-			this.dict = new Dictionary(url);
+			this.dict = new RAMDictionary(url, ILoadPolicy.NO_LOAD);
 			this.doMapping();
+			this.loadIntoMemory();
 		}
 		
+		public void loadIntoMemory() {
+			try {
+				dict.open();
+				dict.load(true);
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}		
+		}
+		
+		public void closeDict() {
+			dict.close();
+		}
 		/**
 		 * Maps the StanfordDependencyParser tags to WordNet tags 
 		 */
@@ -101,17 +119,11 @@ public class WordnetAdapter {
 		 * @return: gloss of the given word for the given POS 
 		 */
 		public String[] getGloss(IWordID wordID){	
-			try{
-				
-				dict.open();	
+			try{	
 				IWord dictword = dict.getWord(wordID);
 				String[] glossAndSenseKey = {dictword.getSynset().getGloss(), dictword.getSenseKey().toString()};
-				dict.close();
 				return glossAndSenseKey;
 				
-			}catch(IOException e){
-				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-				System.err.println(e);
 			}catch(NullPointerException e){
 				System.err.println("Word \""+wordID.toString()+"\" not found in WordNet.");
 			}
@@ -120,16 +132,10 @@ public class WordnetAdapter {
 		
 		public String getOnlyGloss(IWordID wordID){	
 			try{
-				
-				dict.open();	
 				IWord dictword = dict.getWord(wordID);
 				String gloss = dictword.getSynset().getGloss();
-				dict.close();
 				return gloss;
 				
-			}catch(IOException e){
-				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-				System.err.println(e);
 			}catch(NullPointerException e){
 				System.err.println("Word \""+wordID.toString()+"\" not found in WordNet.");
 			}
@@ -145,7 +151,6 @@ public class WordnetAdapter {
 		public ArrayList<IWordID> getWordsIds(String word, String pos) {
 			ArrayList<IWordID> ids = new ArrayList<IWordID>();
 			try{			
-				dict.open();	
 				POS wnPos = this.posMap.get(pos);		
 				IIndexWord idxWord = dict.getIndexWord(word, wnPos);
 				if (idxWord != null) {
@@ -153,10 +158,6 @@ public class WordnetAdapter {
 						ids.add(wordID);
 					}
 				}
-				dict.close();	
-			}catch(IOException e){
-				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-				System.err.println(e);
 			}catch(NullPointerException e){
 				System.err.println("Word \""+word+"\" with POS " + pos + "not found in WordNet.");
 			}
@@ -165,43 +166,21 @@ public class WordnetAdapter {
 		
 		public IWord getWord(ISenseKey senseKey) {
 			IWord word = null;
-			try {
-				dict.open();
-				word = dict.getWord(senseKey);
-				dict.close();
-			} catch(IOException e){
-				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-				System.err.println(e);
-			}
+			word = dict.getWord(senseKey);
 			return word;
 		}
 		
 		public IWord getWord(IWordID id) {
 			IWord word = null;
-			try {
-				dict.open();
-				word = dict.getWord(id);
-				dict.close();
-			} catch(IOException e){
-				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-				System.err.println(e);
-			}
+			word = dict.getWord(id);
 			return word;
 		}
 		
 		public ArrayList<IWord> getSynonyms(IWordID wordId) {
 			ArrayList<IWord> words = new ArrayList<IWord>();
-			try {
-				dict.open();
-				for (IWord word : dict.getWord(wordId).getSynset().getWords()) {
-					words.add(word);
-				}
-				dict.close();
-			} catch(IOException e){
-				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-				System.err.println(e);
-			}
-			
+			for (IWord word : dict.getWord(wordId).getSynset().getWords()) {
+				words.add(word);
+			}	
 			return words;
 		}
 		
@@ -213,39 +192,24 @@ public class WordnetAdapter {
 		 */
 		public ArrayList<IWord> getRelatedWords(IWordID wordId) {
 			ArrayList<IWord> words = new ArrayList<IWord>();
-			try {
-				dict.open();
-				for (ISynsetID synsetID : dict.getWord(wordId).getSynset().getRelatedSynsets()) {
-					for (IWord word : dict.getSynset(synsetID).getWords()) {
-						words.add(word);
-					}
+			for (ISynsetID synsetID : dict.getWord(wordId).getSynset().getRelatedSynsets()) {
+				for (IWord word : dict.getSynset(synsetID).getWords()) {
+					words.add(word);
 				}
-				dict.close();
-			} catch(IOException e){
-				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-				System.err.println(e);
-			}
-			
+			}			
 			return words;
 		}
 		
 		public ArrayList<IWord> getSynonymsAndRelatedWords(IWordID wordId) {
 			ArrayList<IWord> words = new ArrayList<IWord>();
-			try {
-				dict.open();
-				ISynset synset = dict.getWord(wordId).getSynset();
-				for (IWord word : synset.getWords()) {
+			ISynset synset = dict.getWord(wordId).getSynset();
+			for (IWord word : synset.getWords()) {
+				words.add(word);
+			}
+			for (ISynsetID synsetID : synset.getRelatedSynsets()) {
+				for (IWord word : dict.getSynset(synsetID).getWords()) {
 					words.add(word);
 				}
-				for (ISynsetID synsetID : synset.getRelatedSynsets()) {
-					for (IWord word : dict.getSynset(synsetID).getWords()) {
-						words.add(word);
-					}
-				}
-				dict.close();
-			} catch(IOException e){
-				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-				System.err.println(e);
 			}
 			
 			return words;
@@ -268,18 +232,13 @@ public class WordnetAdapter {
 		public ArrayList<IWord> getWordsList(String word, String pos) {
 			ArrayList<IWord> words = new ArrayList<IWord>();
 			try{			
-				dict.open();	
 				POS wnPos = this.posMap.get(pos);		
 				IIndexWord idxWord = dict.getIndexWord(word, wnPos);
 				if (idxWord != null) {
 					for(IWordID wordID: idxWord.getWordIDs()){
 						words.add(dict.getWord(wordID));
 					}
-				}
-				dict.close();	
-			}catch(IOException e){
-				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-				System.err.println(e);
+				}	
 			}catch(NullPointerException e){
 				System.err.println("Word \""+word+"\" with POS " + pos + "not found in WordNet.");
 			}

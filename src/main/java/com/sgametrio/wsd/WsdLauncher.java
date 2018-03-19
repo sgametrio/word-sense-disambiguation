@@ -102,6 +102,8 @@ public class WsdLauncher {
 
 		long duration = (endTime - startTime)/1000000000; // in seconds
 		System.out.println("Time executed (in seconds): " + duration);
+		// Remember to close dictionary
+		myExecutor.closeDictionary();
 	}
 	
 	/**
