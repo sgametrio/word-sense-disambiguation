@@ -368,9 +368,9 @@ public class MyExecutor {
 		this.myCreateEdges(graph);
 		if (centrality) {
 			// check if we can compute distances on support nodes
-			int depth = 2;
+
 			this.myCreateEdges(supportGraph);
-			this.addSupportNodes(supportGraph, depth);
+			this.addSupportNodes(supportGraph, Globals.nodesDepth);
 			this.computeVertexCentrality(supportGraph);
 			if (Globals.saveGml) 
 				supportGraph.saveToGML(Globals.gmlPath + "supportGraph" + this.progrSaveName + ".gml");
@@ -473,17 +473,13 @@ public class MyExecutor {
 		ArrayList<MyVertex> vertexes = supportGraph.getNodes();
 		for (MyVertex v : vertexes) {
 			// Prendo tutte le word dal synset, e dai synsets correlati
-			ArrayList<IWord> vRelatedWords1 = this.wordnet.getSynonyms(v.getWord().getID());
-			ArrayList<IWord> vRelatedWords2 = this.wordnet.getRelatedWords(v.getWord().getID());
-			ArrayList<IWord> vRelatedWords = new ArrayList<IWord>();
-			for (IWord word : vRelatedWords1) {
-				vRelatedWords.add(word);
-			}
-			for (IWord word : vRelatedWords2) {
-				if (!vRelatedWords.contains(word))
-					vRelatedWords.add(word);
-			}
-
+			ArrayList<IWord> vRelatedWords = v.getRelatedWords();
+			// Avoid searching two times the same word
+			if (vRelatedWords == null) {
+				vRelatedWords = this.wordnet.getRelatedWords(v.getWord().getID());
+				v.setRelatedWords(vRelatedWords);
+			} 
+			
 			for (IWord word : vRelatedWords) {
 				// Se la parola esiste già nel mio grafo non devo aggiungerla
 				if (supportGraph.containsWord(word))
@@ -514,7 +510,7 @@ public class MyExecutor {
 			if (differentIndexes.size() < 2) {
 				continue;
 			}
-			// TODO: modificare anche questo please
+			// TODO: Ottimizzare anche questo
 			String[] glossAndSenseKey = this.wordnet.getGloss(w.getID());
 			
 			String[] glossExamples = glossAndSenseKey[0].split("\""); //separates glosses form examples

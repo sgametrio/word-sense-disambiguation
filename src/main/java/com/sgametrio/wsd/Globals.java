@@ -21,7 +21,7 @@ public class Globals {
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
-	public static final String currentDataset = MiniSenseval3;
+	public static final String currentDataset = Senseval3;
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
 
@@ -63,7 +63,10 @@ public class Globals {
 	
 	public static final String disambiguationCentrality = kppCentrality;
 
+	// Execution parameters
 	public static boolean saveGml = true;
 	public static boolean runSolver = false;
 	public static boolean evaluation = true;
+
+	public static int nodesDepth = 1;
 }

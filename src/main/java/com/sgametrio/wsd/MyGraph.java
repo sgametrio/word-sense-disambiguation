@@ -104,4 +104,30 @@ public class MyGraph {
 	public void setPhrase(String phrase) {
 		this.phrase = phrase;
 	}
+
+	/**
+	 * 
+	 * @return only disambiguation vertexes
+	 */
+	public ArrayList<MyVertex> getDisambiguationNodes() {
+		ArrayList<MyVertex> disambiguationVertexes = new ArrayList<MyVertex>();
+		for (MyVertex v : vertexes) {
+			if (v.getSentenceIndex() != -1)
+				disambiguationVertexes.add(v);
+		}
+		return disambiguationVertexes;
+	}
+	
+	/**
+	 * 
+	 * @return only support nodes
+	 */
+	public ArrayList<MyVertex> getSupportNodes() {
+		ArrayList<MyVertex> supportVertexes = new ArrayList<MyVertex>();
+		for (MyVertex v : vertexes) {
+			if (v.getSentenceIndex() == -1)
+				supportVertexes.add(v);
+		}
+		return supportVertexes;
+	}
 }

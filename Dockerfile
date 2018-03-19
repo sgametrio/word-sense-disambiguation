@@ -8,18 +8,17 @@ ENV MAVEN_OPTS=-Dmaven.repo.local=/.m2/
 WORKDIR /app
 COPY pom.xml .
 RUN mvn -B install
-COPY . .
-# Include resources in .jar?
-COPY --from=wsd-env /app/evaluation-datasets src/main/resources
-COPY --from=wsd-env /app/GLKH-1.0 src/main/resources
-RUN mvn -B -o -T 1C package -DskipTests
+COPY src src
+RUN mvn -B -o package -DskipTests
 
 
 # Executor image (testing build)
 FROM openjdk:8-jre-alpine
-COPY --from=builder /app/target/wordsensedisambiguation-0.0.1-SNAPSHOT-jar-with-dependencies.jar /app/app.jar
-COPY --from=wsd-env /usr/local/WordNet-3.0 /usr/local/
+COPY --from=builder /app/target/wordsensedisambiguation-0.0.1-SNAPSHOT-jar-with-dependencies.jar /app/target/app.jar
+COPY --from=wsd-env /usr/local/WordNet-3.0 /usr/local/WordNet-3.0
 
-WORKDIR /app
+WORKDIR /app/target
+COPY --from=wsd-env /app/evaluation-datasets /app/target/src/main/resources/evaluation-datasets
+COPY --from=wsd-env /app/GLKH-1.0 /app/target/src/main/resources/GLKH-1.0
 # RUN java command to execute jar
 CMD [ "java", "-jar", "app.jar" ]

@@ -61,7 +61,7 @@ public class WsdLauncher {
 			myExecutor.createDir(Globals.gmlPath);
 		}
 		myExecutor.createDir(Globals.resultsPath);
-		
+		long startTime = System.nanoTime();
 		// TODO: move this code to InputExtractor
 		try {
 			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
@@ -97,6 +97,11 @@ public class WsdLauncher {
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 			System.err.println(e);
 		}
+
+		long endTime = System.nanoTime();
+
+		long duration = (endTime - startTime)/1000000000; // in seconds
+		System.out.println("Time executed (in seconds): " + duration);
 	}
 	
 	/**

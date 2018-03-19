@@ -87,6 +87,26 @@
 		</repository>
 	</repositories>
 	<build>
+		<resources>
+			<!-- regular resource processsing for everything except logback.xml -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<excludes>
+					<exclude>logback.xml</exclude>
+				</excludes>
+			</resource>
+			<!-- resource processsing with a different output directory
+				for logback.xml -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>logback.xml</include>
+				</includes>
+				<!-- relative to target/classes
+					i.e. ${project.build.outputDirectory} -->
+				<targetPath>..</targetPath>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>

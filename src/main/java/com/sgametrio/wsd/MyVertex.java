@@ -19,6 +19,7 @@ public class MyVertex {
 	private String treeRep;
 	
 	private double centrality = 0;
+	private ArrayList<IWord> relatedWords;
 	
 	/**
 	 * Constructor used to create support nodes, I already have the IWord object
@@ -163,5 +164,13 @@ public class MyVertex {
 				+ "\t\tgloss \"" + this.getGloss().replaceAll("\"", "") + "\"\n"
 				+ "\t]\n";
 		return gml;
+	}
+
+	public void setRelatedWords(ArrayList<IWord> vRelatedWords) {
+		this.relatedWords = vRelatedWords;
+	}
+	
+	public ArrayList<IWord> getRelatedWords() {
+		return this.relatedWords;
 	}
 }

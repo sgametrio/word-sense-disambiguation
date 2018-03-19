@@ -229,6 +229,28 @@ public class WordnetAdapter {
 			return words;
 		}
 		
+		public ArrayList<IWord> getSynonymsAndRelatedWords(IWordID wordId) {
+			ArrayList<IWord> words = new ArrayList<IWord>();
+			try {
+				dict.open();
+				ISynset synset = dict.getWord(wordId).getSynset();
+				for (IWord word : synset.getWords()) {
+					words.add(word);
+				}
+				for (ISynsetID synsetID : synset.getRelatedSynsets()) {
+					for (IWord word : dict.getSynset(synsetID).getWords()) {
+						words.add(word);
+					}
+				}
+				dict.close();
+			} catch(IOException e){
+				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
+				System.err.println(e);
+			}
+			
+			return words;
+		}
+		
 		//GETTER METHODS
 		public Map<String, POS> getPosMap(){
 			return this.posMap;

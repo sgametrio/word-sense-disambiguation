@@ -11,6 +11,7 @@ Use vertex centrality measures combined with sintactic similarity computed dista
 * Seems that adding both synset and related synsets' words is better
 	* maybe it's useful to go deeper (more than one edge) (this seems the correct way)
 		* depth 2 seems the best (have to work on particular relationship)
+		* Per curiosità con depth 3 vediamo cosa fa All:
 * Maybe working on examples could give us better results
 
 ## Possible future work
