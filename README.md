@@ -17,6 +17,7 @@ Use vertex centrality measures combined with sintactic similarity computed dista
 ## Possible future work
 * Move all filesystem resources stream to getResourceAsAStream
 * Focus on performance (reduce WordNet accesses, for example)
+	* Multi-thread performance (see ExecutorService or Thread)
 	* Set completing time in debugging mode
 	* Include timings in final report too
 * Make some tests to instantly identify:		

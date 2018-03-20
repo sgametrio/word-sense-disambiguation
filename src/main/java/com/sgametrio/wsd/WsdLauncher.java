@@ -5,7 +5,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -79,14 +85,37 @@ public class WsdLauncher {
 				FileWriter deleteOldResultsFile = new FileWriter(Globals.resultsPath + Globals.fileName + Globals.resultsFileName);
 				deleteOldResultsFile.close();
 			}
+			
+			ArrayList<ArrayList<InputInstance>> allInstances = new ArrayList<ArrayList<InputInstance>>();
 			//iterate over all sentences and send them to inputExtractor to be processed
+			for (int sentIndex = 0; sentIndex < allSentences.getLength(); sentIndex++) {
+				Node sentence = allSentences.item(sentIndex);
+				ArrayList<InputInstance> instances = InputExtractor.myExtractInput(sentence);					
+				allInstances.add(instances);
+				
+			}
+			// Create thread pool
+			ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+			List<SentenceRunner> tasks = new ArrayList<SentenceRunner>();
+			
+			for (ArrayList<InputInstance> instances : allInstances) {
+				// one thread for each sentence
+				SentenceRunner runner = new SentenceRunner(myExecutor, instances, centrality);
+			    executor.execute(runner);
+			}
+			
+			// Start evaluation only when all thread are finished
+			executor.shutdown();
+			// wait until all are finished
+			while (!executor.isTerminated());
+			System.out.println("Finished results");
+			/*
 			for (int sentIndex = 0; sentIndex < allSentences.getLength(); sentIndex++) {
 				Node sentence = allSentences.item(sentIndex);
 				//get the sentence in a format valid to be given to performDisambiguation method
 				ArrayList<InputInstance> instances = InputExtractor.myExtractInput(sentence);
-				myExecutor.performDisambiguation(instances, centrality);
-			}
-			
+				myExecutor.performDisambiguation(instances, centrality);		
+			}*/
 			//launch Navigli's evaluation framework script
 			if (centrality) {
 				launchEvaluator(Globals.currentGoldFile, Globals.resultsPath+Globals.fileNameCentrality+Globals.resultsFileName);

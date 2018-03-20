@@ -74,12 +74,13 @@ public class MyExecutor {
 		ArrayList<InputInstance> selectedInstances = this.mySelectPos(instances);
 
 		//create the graph
-		String phrase = "";
+		String sentence = "";
 		for (InputInstance i : instances) {
-			phrase += i.term + " ";
+			sentence += i.term + " ";
 		}
+		System.out.println("Sentence: " + sentence + " assigned to " + Thread.currentThread().getName());
 		MyGraph graph = this.createDisambiguationGraph(selectedInstances, centrality);
-		graph.setPhrase(phrase);
+		graph.setSentence(sentence);
 		//save gml (optional)
 		
 		if(Globals.saveGml){

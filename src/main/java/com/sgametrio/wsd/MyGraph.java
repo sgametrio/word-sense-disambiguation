@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import edu.mit.jwi.item.IWord;
 
 public class MyGraph {
-	private String phrase = "";
+	private String sentence = "";
 
 	private ArrayList<MyVertex> vertexes;
 
@@ -98,11 +98,11 @@ public class MyGraph {
 	}
 	
 	public String getPhrase() {
-		return phrase;
+		return sentence;
 	}
 
-	public void setPhrase(String phrase) {
-		this.phrase = phrase;
+	public void setSentence(String sentence) {
+		this.sentence = sentence;
 	}
 
 	/**
