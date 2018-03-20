@@ -86,17 +86,12 @@ public class WsdLauncher {
 				deleteOldResultsFile.close();
 			}
 			
-			ArrayList<ArrayList<InputInstance>> allInstances = new ArrayList<ArrayList<InputInstance>>();
+			// Create thread pool
+			ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());			
 			//iterate over all sentences and send them to inputExtractor to be processed
 			for (int sentIndex = 0; sentIndex < allSentences.getLength(); sentIndex++) {
 				Node sentence = allSentences.item(sentIndex);
-				ArrayList<InputInstance> instances = InputExtractor.myExtractInput(sentence);					
-				allInstances.add(instances);
-			}
-			// Create thread pool
-			ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());			
-			for (ArrayList<InputInstance> instances : allInstances) {
-				// one thread for each sentence
+				ArrayList<InputInstance> instances = InputExtractor.myExtractInput(sentence);
 				SentenceRunner runner = new SentenceRunner(myExecutor, instances, centrality);
 			    executor.execute(runner);
 			}
