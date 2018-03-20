@@ -95,7 +95,7 @@ public class WsdLauncher {
 				
 			}
 			// Create thread pool
-			ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+			ExecutorService executor = Executors.newCachedThreadPool();
 			List<SentenceRunner> tasks = new ArrayList<SentenceRunner>();
 			
 			for (ArrayList<InputInstance> instances : allInstances) {
