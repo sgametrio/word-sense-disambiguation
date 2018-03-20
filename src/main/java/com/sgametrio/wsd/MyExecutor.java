@@ -43,9 +43,11 @@ public class MyExecutor {
 	private KelpAdapter kelp = null;
 	
 	//saving params
-	private  int progrSaveName = 1;
+	private int progrSaveName = 1;
 	private String fileNameSentences = "sentences";
-	private  int progrSaveNameCentrality = 1;
+	private final Object lock = new Object();
+	private final Object fileLock = new Object();
+	private final Object tspLock = new Object();
 	
 	//execution params
 	private String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
@@ -82,10 +84,11 @@ public class MyExecutor {
 		graph.setSentence(sentence);
 		//save gml (optional)
 		
-		if(Globals.saveGml){
-			graph.saveToGML(Globals.gmlPath + Globals.fileName+this.progrSaveName + ".gml");
+		synchronized (lock) {
+			if(Globals.saveGml){
+				graph.saveToGML(Globals.gmlPath + Globals.fileName+this.progrSaveName + ".gml");
+			}
 		}
-		
 		// Use centrality to disambiguate senses in a word
 		if (centrality) {
 			this.printCentralityDisambiguation(graph, false);
@@ -94,17 +97,18 @@ public class MyExecutor {
 		/* TODO: Make this working with solver: saveToGTSP and generateOutputFile
 		if (Globals.runSolver) {
 			if(graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+this.progrSaveName)){
-				this.setTSPSolver();
-				if(this.runSolver()){
-					this.generateOutputFile(graph);
+				synchronized (tspLock) {
+					this.setTSPSolver();
+					if(this.runSolver()){
+						this.generateOutputFile(graph);
+					}
 				}	
 			}
 		}
 		*/
-		
-		System.out.println(this.progrSaveName);
-		//the following must be the last instruction of this method
-		this.progrSaveName++;
+		synchronized (lock) {
+			System.out.println(this.progrSaveName++);
+		}
 	}
 	
 	
@@ -153,29 +157,30 @@ public class MyExecutor {
 
 	private void printMapToFile(Map<Integer, MyVertex> disambiguationMap, String fileName, boolean evaluation, boolean sentences) {
 		// print Map ordered by key
-		try {
-			PrintWriter keyFileWriter;
-			if (sentences) {
-				keyFileWriter = new PrintWriter(new FileWriter(Globals.resultsPath + fileName + this.fileNameSentences +Globals.resultsFileName, true));
-			} else {
-				keyFileWriter = new PrintWriter(new FileWriter(Globals.resultsPath + fileName +Globals.resultsFileName, true));
-			}
-			//sort word by their position in the text
-			SortedSet<Integer> keys = new TreeSet<>(disambiguationMap.keySet());
-			for (Integer key : keys) { 
-			   MyVertex v = disambiguationMap.get(key);
-			   if(evaluation) { //evaluation mode output format
-					if(v.getSentenceTermId() != null){
-						keyFileWriter.write(v.getSentenceTermId()+" "+v.getGlossKey()+"\n");
-					}
-				} else { //sentence wsd output format
-					keyFileWriter.write("Disambiguated \""+v.getWord()+"\" as \n\t\t ("+v.getGlossKey()+") \""+this.wordnet.getGloss(v.getWord().getID())+"\"\n");
+		synchronized (fileLock) {
+			try {
+				PrintWriter keyFileWriter;
+				if (sentences) {
+					keyFileWriter = new PrintWriter(new FileWriter(Globals.resultsPath + fileName + this.fileNameSentences +Globals.resultsFileName, true));
+				} else {
+					keyFileWriter = new PrintWriter(new FileWriter(Globals.resultsPath + fileName +Globals.resultsFileName, true));
 				}
+				//sort word by their position in the text
+				SortedSet<Integer> keys = new TreeSet<>(disambiguationMap.keySet());
+				for (Integer key : keys) { 
+				   MyVertex v = disambiguationMap.get(key);
+				   if(evaluation) { //evaluation mode output format
+						if(v.getSentenceTermId() != null){
+							keyFileWriter.write(v.getSentenceTermId()+" "+v.getGlossKey()+"\n");
+						}
+					} else { //sentence wsd output format
+						keyFileWriter.write("Disambiguated \""+v.getWord()+"\" as \n\t\t ("+v.getGlossKey()+") \""+this.wordnet.getGloss(v.getWord().getID())+"\"\n");
+					}
+				}
+				keyFileWriter.close();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-			keyFileWriter.close();
-			this.progrSaveNameCentrality++;
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
 	}
 
@@ -450,13 +455,13 @@ public class MyExecutor {
 	 * For every vertex in the graph we search related senses in wordnet.
 	 * If we find common related senses between different vertexes with different sentence indexes,
 	 * we add this word to the graph so we can compute centrality based also on these support nodes
-	 * @param supportGraph
+	 * @param graph
 	 * @param depth
 	 */
-	private void addSupportNodes(MyGraph supportGraph, int depth) {
+	private void addSupportNodes(MyGraph graph, int depth) {
 		if (depth == 0) return;
 		Map<IWord, ArrayList<MyVertex>> relatedWords = new HashMap<IWord, ArrayList<MyVertex>>();
-		ArrayList<MyVertex> vertexes = supportGraph.getNodes();
+		ArrayList<MyVertex> vertexes = graph.getNodes();
 		for (MyVertex v : vertexes) {
 			// Prendo tutte le word dal synset, e dai synsets correlati
 			ArrayList<IWord> vRelatedWords = v.getRelatedWords();
@@ -468,7 +473,7 @@ public class MyExecutor {
 			
 			for (IWord word : vRelatedWords) {
 				// Se la parola esiste già nel mio grafo non devo aggiungerla
-				if (supportGraph.containsWord(word))
+				if (graph.containsWord(word))
 					continue;
 				
 				ArrayList<MyVertex> tempVertexes;
@@ -503,15 +508,15 @@ public class MyExecutor {
 			// Più di un vertice correlato, creo il nodo e gli collego i vertici
 		
 			MyVertex temp = new MyVertex(w, treeRepresentations.get(0).toString());
-			supportGraph.addNode(temp);
+			graph.addNode(temp);
 			// Collego tutti i vertici a quel nodo
 			for (MyVertex v : possibleVertexes) {
 				double weight = this.kelp.computeTreeSimilarity(temp.getTreeGlossRepr(),
 						v.getTreeGlossRepr(), this.treeKernelType);
-				supportGraph.addEdge(v, temp, weight);
+				graph.addEdge(v, temp, weight);
 			}
 		}
-		this.addSupportNodes(supportGraph, depth-1);
+		this.addSupportNodes(graph, depth-1);
 	}
 	
 	private void computeKppVertexCentrality(MyGraph graph) {
@@ -536,30 +541,26 @@ public class MyExecutor {
 	}
 	
 	// TODO: sistemare bene
-	private void computePageRankVertexCentrality(WsdGraph graph, double alpha) {
+	private void computePageRankVertexCentrality(MyGraph graph, double alpha) {
 		// Weight vertexes by page rank centrality
-		ArrayList<WsdVertex> vertices = graph.getVerticesList();
+		ArrayList<MyVertex> vertices = graph.getNodes();
 		int nVertici = vertices.size();
 		for (int i = 0; i < nVertici; i++) {
 			double pageRankCentrality = pageRank(graph, vertices.get(i), nVertici, alpha, 5);
-			vertices.get(i).setPageRankCentrality(pageRankCentrality);
+			vertices.get(i).setCentrality(pageRankCentrality);
 			//System.out.println("Vertice " + vertices.get(i).getId() + " pagerank " + vertices.get(i).getPageRankCentrality());
 		}
 	}
 	
-	private double pageRank(WsdGraph graph, WsdVertex v, int nVertici, double alpha, int step) {
-		
+	private double pageRank(MyGraph graph, MyVertex v, int nVertici, double alpha, int step) {
 		if (step == 0)
 			return 1 / nVertici;
 		
 		double pagerank = 0;
 		pagerank = (1 - alpha)/nVertici;
 		double sum = 0;
-		for (WsdVertex target : graph.getVerticesList()) {
-			if (graph.getEdge(v, target) != null) {
-				// Esiste l'arco
-				sum += pageRank(graph, target, nVertici, alpha, step-1) / graph.outDegreeOf(target);
-			}
+		for (MyEdge target : v.getEdges()) {
+			sum += pageRank(graph, target.getDest(), nVertici, alpha, step-1) / target.getDest().getOutDegree();
 		}
 		return pagerank + alpha * sum;
 	}
@@ -569,7 +570,7 @@ public class MyExecutor {
 	 * for each word of the sentence
 	 * @param graph
 	 */
-	private void generateOutputFile(WsdGraph graph){
+	private void generateOutputFile(MyGraph graph){
 		
 		PrintWriter log = null;
 		try {
@@ -579,11 +580,8 @@ public class MyExecutor {
 			//open reader for the tspSolver output file
 			BufferedReader tourFileReader = new BufferedReader(
 					new FileReader(Globals.tspSolverPathToGTOURS+Globals.fileName+this.progrSaveName+".tour"));
-			//open writer to write results
-			PrintWriter keyFileWriter = new PrintWriter(
-					new FileWriter(Globals.resultsPath + Globals.fileName+Globals.resultsFileName, true));
-			//sorted map used to order words by their position in the sentence
-			TreeMap<Integer, String[]> sortMap = new TreeMap<Integer, String[]>();
+			
+			Map<Integer, MyVertex> disambiguationMap = new HashMap<Integer, MyVertex>();
 			String line;
 			boolean read = false;
 			
@@ -593,32 +591,17 @@ public class MyExecutor {
 					read = false;
 				}
 				if(read){
-					WsdVertex v = graph.getVertex(Integer.parseInt(line.trim())-1);//-1 because solver ids starts from 1, our vertices ids starts from 0
-					String[] wordGloss_KeyGlossParams = {v.getWord(), v.getGlossKey(), v.getGloss(), v.getParams()};
-					sortMap.put(v.getSentenceIndex(), wordGloss_KeyGlossParams);
+					MyVertex v = graph.getNodeById(Integer.parseInt(line.trim())-1);//-1 because solver ids starts from 1, our vertices ids starts from 0
+					disambiguationMap.put(v.getSentenceIndex(), v);
 				}
 				if(line.equalsIgnoreCase("TOUR_SECTION")){
 					read = true;
 				}
 			}
 			
-			//sort word by their position in the text
-			Iterator<Entry<Integer, String[]>> it = sortMap.entrySet().iterator();
-			while(it.hasNext()){
-				Map.Entry<Integer, String[]> pair = (Map.Entry<Integer, String[]>)it.next();
-				String[] wordGloss_keyGlosParamsElement = pair.getValue();
-				
-				if(Globals.evaluation){ //evaluation mode output format
-					if(wordGloss_keyGlosParamsElement[3] != null){
-						keyFileWriter.write(pair.getValue()[3]+" "+pair.getValue()[1]+"\n");
-					}
-				}else{ //sentence wsd output format
-					keyFileWriter.write("Disambiguated \""+pair.getValue()[0]+"\" as \n\t\t ("+pair.getValue()[1]+") \""+pair.getValue()[2]+"\"\n");
-				}
-		        it.remove();
-			}
 			tourFileReader.close();
-			keyFileWriter.close();
+			//open writer to write results
+			this.printMapToFile(disambiguationMap, Globals.fileName, true, false);
 			
 		} catch (FileNotFoundException e) {
 			//output file of tsp solver not created, the graph size wasn't >1

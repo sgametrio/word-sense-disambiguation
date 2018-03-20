@@ -173,4 +173,8 @@ public class MyVertex {
 	public ArrayList<IWord> getRelatedWords() {
 		return this.relatedWords;
 	}
+
+	public int getOutDegree() {
+		return this.adjList.size();
+	}
 }
