@@ -409,7 +409,7 @@ public class MyExecutor {
 		//for all the WordNet glosses of that word and its lemma
 		// TODO: Optimize access to DB
 		for(IWord word : this.wordnet.getWordsList(input.lemma, input.pos)) {
-			String gloss = word.getSynset().getGloss();
+			String gloss = word.getSynset().getGloss().split("\"")[0];
 			//compute dependency trees for the gloss
 			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(gloss);
 			if(treeRepresentations.size()>1){
@@ -496,7 +496,7 @@ public class MyExecutor {
 			if (differentIndexes.size() < 2) {
 				continue;
 			}
-			String gloss = w.getSynset().getGloss();
+			String gloss = w.getSynset().getGloss().split("\"")[0];
 			
 			//compute dependency trees for the gloss
 			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(gloss);
