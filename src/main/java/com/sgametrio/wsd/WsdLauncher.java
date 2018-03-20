@@ -92,12 +92,9 @@ public class WsdLauncher {
 				Node sentence = allSentences.item(sentIndex);
 				ArrayList<InputInstance> instances = InputExtractor.myExtractInput(sentence);					
 				allInstances.add(instances);
-				
 			}
 			// Create thread pool
-			ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-			List<SentenceRunner> tasks = new ArrayList<SentenceRunner>();
-			
+			ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());			
 			for (ArrayList<InputInstance> instances : allInstances) {
 				// one thread for each sentence
 				SentenceRunner runner = new SentenceRunner(myExecutor, instances, centrality);
@@ -109,13 +106,7 @@ public class WsdLauncher {
 			// wait until all are finished
 			while (!executor.isTerminated());
 			System.out.println("Finished results");
-			/*
-			for (int sentIndex = 0; sentIndex < allSentences.getLength(); sentIndex++) {
-				Node sentence = allSentences.item(sentIndex);
-				//get the sentence in a format valid to be given to performDisambiguation method
-				ArrayList<InputInstance> instances = InputExtractor.myExtractInput(sentence);
-				myExecutor.performDisambiguation(instances, centrality);		
-			}*/
+
 			//launch Navigli's evaluation framework script
 			if (centrality) {
 				launchEvaluator(Globals.currentGoldFile, Globals.resultsPath+Globals.fileNameCentrality+Globals.resultsFileName);

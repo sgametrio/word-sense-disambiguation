@@ -78,7 +78,6 @@ public class MyExecutor {
 		for (InputInstance i : instances) {
 			sentence += i.term + " ";
 		}
-		System.out.println("Sentence: " + sentence + " assigned to " + Thread.currentThread().getName());
 		MyGraph graph = this.createDisambiguationGraph(selectedInstances, centrality);
 		graph.setSentence(sentence);
 		//save gml (optional)
@@ -131,7 +130,6 @@ public class MyExecutor {
 			}
 		}
 		// Print results
-		//System.out.print("Printing to file.. ");
 		this.printMapToFile(disambiguationMap, Globals.fileNameCentrality, Globals.evaluation, sentences);
 		// results in .key format
 
@@ -358,29 +356,15 @@ public class MyExecutor {
 	private MyGraph createDisambiguationGraph(ArrayList<InputInstance> instances, boolean centrality){
 		
 		MyGraph graph = new MyGraph();
-		// Support graph on which we compute vertex centrality
-		// Maybe we haven't to create a second graph
-		MyGraph supportGraph = new MyGraph();
-		
+				
 		// for every instance, I have to find all senses
 		for (InputInstance instance : instances) {
 			this.myCreateNodes(graph, instance);
-			if (centrality)
-				this.myCreateNodes(supportGraph, instance);
 		}
-		
 		this.myCreateEdges(graph);
-		if (centrality) {
-			// check if we can compute distances on support nodes
-
-			this.myCreateEdges(supportGraph);
-			this.addSupportNodes(supportGraph, Globals.nodesDepth);
-			this.computeVertexCentrality(supportGraph);
-			if (Globals.saveGml) 
-				supportGraph.saveToGML(Globals.gmlPath + "supportGraph" + this.progrSaveName + ".gml");
-			this.copyCentrality(supportGraph, graph);
-		}
-		
+		// Add support nodes to compute better centrality
+		this.addSupportNodes(graph, Globals.nodesDepth);
+		this.computeVertexCentrality(graph);		
 		return graph;
 	}
 
@@ -425,17 +409,15 @@ public class MyExecutor {
 		//for all the WordNet glosses of that word and its lemma
 		// TODO: Optimize access to DB
 		for(IWord word : this.wordnet.getWordsList(input.lemma, input.pos)) {
-			String[] glossAndSenseKey = this.wordnet.getGloss(word.getID());
-			
-			String[] glossExamples = glossAndSenseKey[0].split("\""); //separates glosses form examples
+			String gloss = word.getSynset().getGloss();
 			//compute dependency trees for the gloss
-			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(glossExamples[0]);
+			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(gloss);
 			if(treeRepresentations.size()>1){
 				//if the gloss is composed by multiple sentences, there could be more dependency tree
 				//in this case a message is given and only the first tree is considered
-				System.out.println("More than one tree representation for a gloss of \""+input.lemma+"\" ("+glossExamples[0]+") computed. Took the first one.");
+				System.out.println("More than one tree representation for a gloss of \""+input.lemma+"\" ("+gloss+") computed. Took the first one.");
 			}
-			MyVertex v = new MyVertex(input, word, treeRepresentations.get(0).toString(), glossAndSenseKey[0]);
+			MyVertex v = new MyVertex(input, word, treeRepresentations.get(0).toString(), gloss);
 			graph.addNode(v);
 		}		
 	}
@@ -480,9 +462,9 @@ public class MyExecutor {
 			ArrayList<IWord> vRelatedWords = v.getRelatedWords();
 			// Avoid searching two times the same word
 			if (vRelatedWords == null) {
-				vRelatedWords = this.wordnet.getRelatedWords(v.getWord().getID());
+				vRelatedWords = this.wordnet.getSynonymsAndRelatedWords(v.getWord().getID());
 				v.setRelatedWords(vRelatedWords);
-			} 
+			}
 			
 			for (IWord word : vRelatedWords) {
 				// Se la parola esiste già nel mio grafo non devo aggiungerla
@@ -514,13 +496,10 @@ public class MyExecutor {
 			if (differentIndexes.size() < 2) {
 				continue;
 			}
-			// TODO: Ottimizzare anche questo
-			String[] glossAndSenseKey = this.wordnet.getGloss(w.getID());
-			
-			String[] glossExamples = glossAndSenseKey[0].split("\""); //separates glosses form examples
+			String gloss = w.getSynset().getGloss();
 			
 			//compute dependency trees for the gloss
-			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(glossExamples[0]);
+			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(gloss);
 			// Più di un vertice correlato, creo il nodo e gli collego i vertici
 		
 			MyVertex temp = new MyVertex(w, treeRepresentations.get(0).toString());
@@ -556,6 +535,7 @@ public class MyExecutor {
 		}
 	}
 	
+	// TODO: sistemare bene
 	private void computePageRankVertexCentrality(WsdGraph graph, double alpha) {
 		// Weight vertexes by page rank centrality
 		ArrayList<WsdVertex> vertices = graph.getVerticesList();
