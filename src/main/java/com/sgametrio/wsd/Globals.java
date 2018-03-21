@@ -22,7 +22,8 @@ public class Globals {
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
-	public static final String currentDataset = MediumSenseval3;
+	public static final String currentDataset = MiniSenseval3;
+	public static int nodesDepth = 0;
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
 
@@ -66,8 +67,7 @@ public class Globals {
 
 	// Execution parameters
 	public static boolean saveGml = true;
-	public static boolean runSolver = false;
+	public static boolean runSolver = true;
 	public static boolean evaluation = true;
 
-	public static int nodesDepth = 0;
 }

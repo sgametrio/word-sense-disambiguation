@@ -28,8 +28,7 @@ import edu.mit.jwi.item.Synset;
 
 public class WordnetAdapter {
 		
-		private String wordnetHome = "/usr/local/WordNet-3.0";//path to WordNet home folder
-		private String path = wordnetHome + File.separator + "dict";
+		private String path = Globals.wordnetHome + File.separator + "dict";
 		private URL url; 
 		private IRAMDictionary dict;
 		private Map<String, POS> posMap = new HashMap<String, POS>(); //mapping of StanfordDependencyParser POS tag to WordNet ones
@@ -60,6 +59,9 @@ public class WordnetAdapter {
 			}		
 		}
 		
+		/**
+		 * Remember to call this when wordnet is not needed anymore
+		 */
 		public void closeDict() {
 			dict.close();
 		}
@@ -218,15 +220,6 @@ public class WordnetAdapter {
 		//GETTER METHODS
 		public Map<String, POS> getPosMap(){
 			return this.posMap;
-		}
-		
-		public String getWordnetHome(){
-			return this.wordnetHome;
-		}
-		
-		//SETTER METHODS
-		public void setWordnetHome(String wordnetHomePath){
-			this.wordnetHome = wordnetHomePath;
 		}
 
 		public ArrayList<IWord> getWordsList(String word, String pos) {

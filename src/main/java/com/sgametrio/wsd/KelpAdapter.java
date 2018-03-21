@@ -4,6 +4,9 @@
 
 package com.sgametrio.wsd;
 
+import java.time.Duration;
+import java.time.Instant;
+
 import it.uniroma2.sag.kelp.data.representation.structure.similarity.StructureElementSimilarityI;
 import it.uniroma2.sag.kelp.data.representation.tree.TreeRepresentation;
 import it.uniroma2.sag.kelp.input.parser.DependencyParser;
@@ -122,7 +125,6 @@ public class KelpAdapter {
 	 * @return: similarity score between the given tree considering the specified structure
 	 */
 	public double computeTreeSimilarity(String treeRepres1, String treeRepres2, String structureType){
-		
 		double similarity = -1000000;
 		int terminalFactorOld = this.getTerminalFactor();
 		
@@ -184,7 +186,6 @@ public class KelpAdapter {
 				System.err.println("Invalid stuctureType: "+ structureType);
 				System.exit(1);
 		}
-		
 		return similarity;
 	}
 	

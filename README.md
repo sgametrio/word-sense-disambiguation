@@ -10,17 +10,16 @@ Use vertex centrality measures combined with sintactic similarity computed dista
 ## Thoughts
 * Seems that adding both synset and related synsets' words is better
 	* maybe it's useful to go deeper (more than one edge) (this seems the correct way)
-		* depth 2 seems the best (have to work on particular relationship)
-		* Per curiosità con depth 3 vediamo cosa fa All:
-* Maybe working on examples could give us better results
+		* depth 3 seems the best in terms of results/computation time (have to work on particular relationship, not on all)
+
+* Maybe working on examples inside words could give us better results
 
 ## Possible future work
 * Move all filesystem resources stream to getResourceAsAStream
 * Focus on performance (reduce WordNet accesses, for example)
-	* Multi-thread performance (see ExecutorService or Thread)
-		* computeDependencyTree costs much
-	* Set completing time in debugging mode
-	* Include timings in final report too
+	* Multi-thread performance (done with executorService and thread pool)
+		* computeDependencyTree costs much (it is called million times)
+	* Include timings in final report
 * Make some tests to instantly identify:		
 	* centrality 0.0
 	* disambiguated sense isn't the one with max centrality
@@ -31,4 +30,4 @@ Use vertex centrality measures combined with sintactic similarity computed dista
 	* ...
 	* Make .json readable by external program that can create graphs and visual information (plotly.js or chart.js for example)
 * Use indipendent dictionary (add Adapter for BabelNet, for example)
-* TODO: Make this CI/CD and schedule evaluation every night on latest commit
+* TODO: Make this CI/CD and schedule evaluation
