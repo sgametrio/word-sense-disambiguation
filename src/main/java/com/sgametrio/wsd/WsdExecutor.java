@@ -256,6 +256,10 @@ public class WsdExecutor {
 				if (line.contains("RUNS")) {
 					line = "echo \"RUNS = " + Globals.runs + "\" >> $par";
 				}
+				// PI_FILE cause segmentation fault, to investigate on this
+				if (line.contains("PI_FILE")) {
+					line = "echo \"PI_FILE = PI_FILES/" + Globals.fileName+this.progrSaveName+ ".pi\" >> $par";
+				}
 				newFileWriter.write(line+"\n");
 			}
 			
@@ -302,20 +306,20 @@ public class WsdExecutor {
 
 				Process p = process.start();
 				//get the error stream
-				//InputStream is = p.getErrorStream();
-				//String errorStream = this.getProcessOutput(is);
+				InputStream is = p.getErrorStream();
+				String errorStream = this.getProcessOutput(is);
 				String output = this.getProcessOutput(p.getInputStream());
 
 				//if verbose mode is on, prints tsp solver output and errors
 				if(this.verbose){
 					System.out.println(output);
-					//System.out.println(errorStream);
+					System.out.println(errorStream);
 					System.out.println("____________________________________");
 				}
 				
 				//if the error is a segmentation fault error, it can be solved running again the script
 				//it tries again for a max of 100 times
-				/*if(errorStream.contains("Segmentation fault")){
+				if(errorStream.contains("Segmentation fault")){
 					if(this.trial<=100){
 						System.out.println("Retrying computation. Trial #"+this.trial);
 						this.trial++;
@@ -324,7 +328,7 @@ public class WsdExecutor {
 				}else if((errorStream.contains("not greater than"))||errorStream.contains("dimension < 3")){
 					System.out.println("The graph does not have enough node to run tsp-solver.");
 					return false;
-				}*/
+				}
 				this.trial = 1;				
 				
 				return true;
@@ -745,8 +749,7 @@ public class WsdExecutor {
 			//output file of tsp solver not created, the graph size wasn't >1
 			log.write(Globals.fileName+this.progrSaveName+"\n");
 			log.close();
-			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-			System.err.println(e);
+			e.printStackTrace();
 		} catch (IOException e){
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 			System.err.println(e);

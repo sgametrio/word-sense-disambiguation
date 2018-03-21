@@ -21,7 +21,7 @@ public class Globals {
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
-	public static final String currentDataset = MiniSenseval3;
+	public static final String currentDataset = Senseval3;
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
 

@@ -21,7 +21,7 @@ public class WsdLauncher {
 	
 	//settings, used to make code clearer, use params in WsdExecutor for development
 	private static boolean saveExamples = false;
-	private static boolean runSolver = false; //used to create only .gml file
+	private static boolean runSolver = true; //used to create only .gml file
 	private static boolean saveGml = false;
 	private static boolean verbose = false;
 	
