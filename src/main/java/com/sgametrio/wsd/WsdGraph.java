@@ -575,4 +575,12 @@ public class WsdGraph extends SimpleWeightedGraph<WsdVertex, Integer> {
 		}
 		return false;
 	}
+
+	public double computeMeanCentrality(int id1, int id2) {
+		double mean = 0;
+		mean += this.getVertex(id1).getKppCentrality();
+		mean += this.getVertex(id2).getKppCentrality();
+		mean = mean / 2;
+		return mean;
+	}
 }

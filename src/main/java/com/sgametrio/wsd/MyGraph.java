@@ -8,20 +8,37 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 
 import edu.mit.jwi.item.IWord;
 
 public class MyGraph {
+	private static int progressiveId = 0;
+	private int id;
 	private String sentence = "";
 
 	private ArrayList<MyVertex> vertexes;
 
 	public MyGraph() {
+		id = progressiveId++;
 		vertexes = new ArrayList<MyVertex>();
 	}
 	
 	public ArrayList<MyVertex> getNodes() {
 		return vertexes;
+	}
+	
+	/**
+	 * Get position of vertex in array. Used only to create edge matrix
+	 * @param id
+	 * @return index of node in ArrayList 
+	 */
+	public int getNodeIndexById(int id) {
+		for (int i = 0; i < vertexes.size(); i++) {
+			if (vertexes.get(i).getId() == id)
+				return i;
+		}
+		return -1;
 	}
 	
 	public MyVertex getNodeById(int id) {
@@ -59,6 +76,10 @@ public class MyGraph {
 		return -1;
 	}
 	
+	/**
+	 * Save to graph to a representable format (GML)
+	 * @param path
+	 */
 	public void saveToGML(String path) {
 		// Assuming path to file exists
 		String gml = "";
@@ -90,111 +111,174 @@ public class MyGraph {
 	}
 	
 	/**
-	 * Save to GTSP format file
+	 * Save to GTSP format file, to be read by runGLKH
 	 * @param path
 	 */
-	public boolean saveToGTSP(String path) {
+	public boolean saveToGTSP(String path, String filename) {
 		// Assuming path to file exists
-		int size = this.getNodes().size();
+		int size = this.getDisambiguationNodes().size();
 		if (size == 0) {
-			System.err.println("Graph has no vertexes, cannot save to GTSP format");
+			System.out.println("Graph has no vertexes, cannot save to GTSP format");
 			return false;
 		}
 		double[][] matrix = this.getGraphMatrix();
-		String content = "";
-		/**
-		 * Save the graph in GTSP format that will be use to run TSP solver. To this purpose, the 
-		 * similarity matrix of the graph is inverted to compute a "difference" matrix in which edges weights
-		 * represent the differences between two vertices
-		 * @param filePath
-		 * @param fileName
-		 * @return true if the graph has been correctly saved
-		 */
-		/*public boolean saveToGTSP(String filePath, String fileName){
-			int verticesNumber = this.getVerticesNumber();
-			if(verticesNumber>0){
-				BufferedWriter writer = null;
-				int[][] graphMatrix = this.getGraphMatrix();
-				int[][] invertedSimilarityMatrix = this.getInvertedSimilarityMatrix(graphMatrix);	
-				HashSet<Integer> sentenceIndices = this.getAllUniqueSentenceIndices();
-				HashMap<Integer, ArrayList<Integer>> senseCluster = this.getSensesClusters();
-				
-				String matrix = "NAME : "+ fileName + ".gtsp\n";
-				matrix += "TYPE : GTSP\n";
-				matrix += "COMMENT : wsd graph with edges weighted\n";
-				matrix += "DIMENSION : "+ verticesNumber +"\n";
-				matrix += "GTSP_SETS : "+ this.getAllUniqueSentenceIndices().size() +"\n";
-				matrix += "EDGE_WEIGHT_TYPE : EXPLICIT \n";
-				matrix += "EDGE_WEIGHT_FORMAT : FULL_MATRIX \n";
-				matrix += "EDGE_WEIGHT_SECTION\n";
-				
-				for(int row = 0; row < verticesNumber; row++){
-					for(int col = 0; col < verticesNumber; col++){
-						matrix += invertedSimilarityMatrix[row][col]+" ";
-					}
-					matrix += "\n";
-				}
-				
-				matrix += "GTSP_SET_SECTION\n";
-				
-				Iterator<Integer> sentenceIndex = sentenceIndices.iterator();
-				int clusterNumber = 1;
-				while(sentenceIndex.hasNext()){
-					int index = sentenceIndex.next();
-					matrix += clusterNumber + " ";
-					for(Integer vertexId : senseCluster.get(index)){
-						matrix +=  (vertexId+1) + " "; //ids starts from 0, we want to start from 1
-					}
-					matrix += "-1\n";
-					clusterNumber++;
-				}
-				matrix += "EOF";
-				
-				try {
-					writer = new BufferedWriter(new FileWriter(filePath + fileName+".gtsp"));
-					writer.write(matrix);
-					writer.close();
-					System.out.println("Saved graph to " + filePath + fileName+".gtsp");
-					return true;
-				} catch (IOException e) {
-					System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-					System.err.println(e);
-				}
-			
-			}else{
-				System.out.println(Thread.currentThread().getStackTrace()[1].getMethodName()+": The graph has no vertices.");
-			}
+		int[][] invertedMatrix = this.invertMatrixAndConvertToInt(matrix);
+		ArrayList<ArrayList<Integer>> clusters = this.getNodesIndexByClusters();
+		if (clusters.size() == 1) {
+			System.out.println("Graph has only 1 cluster, don't save to GTSP and don't run solver");
 			return false;
-			
-		}*/
+		}
+		String content = "";
+		content += "NAME : " + filename + ".gtsp\n" ;
+		content += "TYPE : GTSP\n";
+		content += "COMMENT : wsd graph with edges weighted by centrality\n";
+		content += "DIMENSION : "+ size +"\n";
+		content += "GTSP_SETS : "+ clusters.size() +"\n";
+		content += "EDGE_WEIGHT_TYPE : EXPLICIT \n";
+		content += "EDGE_WEIGHT_FORMAT : FULL_MATRIX \n";
+		content += "EDGE_WEIGHT_SECTION : \n";
+		// Prints edge weights
+		for(int row = 0; row < size; row++){
+			for(int col = 0; col < size; col++){
+				content += invertedMatrix[row][col]+" ";
+			}
+			content += "\n";
+		}
+		content += "GTSP_SET_SECTION : \n";
+		for (int i = 0; i < clusters.size(); i++) {
+			content += (i+1) + " ";
+			for (int j = 0; j < clusters.get(i).size(); j++) {
+				// Add 1 because ids in gtsp starts from 1 and in my graph from 0
+				content += (clusters.get(i).get(j)+1) + " ";
+			}
+			content += "-1\n";
+		}
+		content += "EOF";
 		try {
-			BufferedWriter file = new BufferedWriter(new FileWriter(path));
-			file.write(content);
-			file.close();
+			BufferedWriter writer = new BufferedWriter(new FileWriter(path + filename+".gtsp"));
+			writer.write(content);
+			writer.close();
+			if (Globals.verbose)
+				System.out.println("Saved graph to " + path + filename + ".gtsp");
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;
 		}
 	}
+	
+	/**
+	 * Get nodes 
+	 * @return
+	 */
+	public ArrayList<ArrayList<Integer>> getNodesIndexByClusters() {
+		ArrayList<ArrayList<Integer>> clusters = new ArrayList<ArrayList<Integer>>();
+		for (ArrayList<MyVertex> nodes : this.getNodesByClusters().values()) {
+			ArrayList<Integer> cluster = new ArrayList<Integer>();
+			for (MyVertex node : nodes) {
+				cluster.add(getNodeIndexById(node.getId()));
+			}
+			clusters.add(cluster);
+		}
+		return clusters;
+	}
 
-	private double[][] getGraphMatrix() {
-		int size = this.getNodes().size();
+	/**
+	 * Build a map that maps sentence index to an array of vertex of that sentence index
+	 * without support nodes
+	 * @return map
+	 */
+	private Map<Integer, ArrayList<MyVertex>> getNodesByClusters() {
+		ArrayList<MyVertex> vertexes = this.getDisambiguationNodes();
+		Map<Integer, ArrayList<MyVertex>> map = new HashMap<Integer, ArrayList<MyVertex>>();
+		for (MyVertex v : vertexes) {
+			int index = v.getSentenceIndex();
+			if (!map.containsKey(index)) {
+				map.put(index, new ArrayList<MyVertex>());
+			}
+			map.get(index).add(v);
+		}
+		return map;
+	}
+
+	/**
+	 * Return matrix of unsigned integer, inverted and converted from double without losing too much precision
+	 * @param matrix
+	 * @return
+	 */
+	private int[][] invertMatrixAndConvertToInt(double[][] matrix) {
+		int size = matrix.length;
+		int[][] invertedMatrix = new int [size][size];
+		
+		for (int i = 0; i < size; i++) {
+			for (int j = 0; j < matrix[i].length; j++) {
+				if (matrix[i][j] == -1)
+					invertedMatrix[i][j] = -1;
+				else {
+					// Multiply by 100 to lose only a .1 of precision and not 1
+					double value = matrix[i][j]*10;
+					invertedMatrix[i][j] = (int)Math.round(value);
+				}
+			}
+		}
+		// Now invert value by using max value in the matrix
+		int max = this.getMaxValue(invertedMatrix);
+		for (int i = 0; i < size; i++) {
+			for (int j = 0; j < matrix[i].length; j++) {
+				// Add 2 because we have to avoid edge case like when it has no edges so the weight it is -1
+				invertedMatrix[i][j] = max - invertedMatrix[i][j] + 1;
+			}
+		}
+		return invertedMatrix;
+	}
+
+	/**
+	 * Get max value in the matrix
+	 * @param matrix
+	 * @return max value
+	 */
+	private int getMaxValue(int[][] matrix) {
+		int max = -1;
+		for (int i = 0; i < matrix.length; i++) {
+			for (int j = 0; j < matrix[i].length; j++) {
+				if (max < matrix[i][j])
+					max = matrix[i][j];
+			}
+		}
+		return max;
+	}
+
+	/**
+	 * Get a matrix representing the graph
+	 * @return a matrix which has in position ij the weight of the edge between node i and node j if exists,
+	 * -1 otherwise, return null if graph has no nodes
+	 */
+	public double[][] getGraphMatrix() {
+		ArrayList<MyVertex> nodes = this.getDisambiguationNodes();
+		int size = nodes.size();
 		if (size == 0)
 			return null;
 		double[][] matrix = new double[size][size];
-		// Initialize matrix
+		// Initialize matrix by setting all edges to non-existents
 		for (int i = 0; i < size; i++) 
 			for (int j = 0; j < size; j++)
-				matrix[i][j] = 0;
-		for (MyVertex v : this.getNodes()) {
+				matrix[i][j] = -1;
+		for (MyVertex v : nodes) {
 			for (MyEdge e : v.getEdges()) {
-				matrix[v.getId()][e.getDest().getId()] = e.getWeight();
+				// Avoid support nodes
+				if (e.getDest().getSentenceIndex() != -1) {
+					matrix[getNodeIndexById(v.getId())][getNodeIndexById(e.getDest().getId())] = e.getWeight();
+				}
 			}
 		}
 		return matrix;
 	}
 
+	/**
+	 * Helper method to find if graph contains a vertex representing an IWord
+	 * @param word
+	 * @return true if graph has a node representing the word, false otherwise
+	 */
 	public boolean containsWord(IWord word) {
 		for (MyVertex v : vertexes) {
 			if (v.getWord().equals(word)) {
@@ -211,9 +295,13 @@ public class MyGraph {
 	public void setSentence(String sentence) {
 		this.sentence = sentence;
 	}
+	
+	public double computeMeanCentrality(MyVertex v1, MyVertex v2) {
+		return (v1.getCentrality()+v2.getCentrality())/2;
+	}
 
 	/**
-	 * 
+	 * Helper method to return only certain nodes
 	 * @return only disambiguation vertexes
 	 */
 	public ArrayList<MyVertex> getDisambiguationNodes() {
@@ -226,7 +314,7 @@ public class MyGraph {
 	}
 	
 	/**
-	 * 
+	 * Helper method to return only certain nodes
 	 * @return only support nodes
 	 */
 	public ArrayList<MyVertex> getSupportNodes() {
@@ -236,5 +324,13 @@ public class MyGraph {
 				supportVertexes.add(v);
 		}
 		return supportVertexes;
+	}
+
+	public MyVertex getNodeByIndex(int i) {
+		return vertexes.get(i);
+	}
+
+	public int getId() {
+		return this.id;
 	}
 }

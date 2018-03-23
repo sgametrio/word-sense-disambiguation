@@ -257,6 +257,10 @@ public class WsdExecutor {
 				if (line.contains("RUNS")) {
 					line = "echo \"RUNS = " + Globals.runs + "\" >> $par";
 				}
+				if (line.contains("PI_FILES")) {
+					//line = "echo \"PI_FILE = PI_FILES/" + Globals.fileName + "_" + id + ".pi\" >> $par";
+					line = "";
+				}
 				newFileWriter.write(line+"\n");
 			}
 			
@@ -303,14 +307,14 @@ public class WsdExecutor {
 
 				Process p = process.start();
 				//get the error stream
-				//InputStream is = p.getErrorStream();
-				//String errorStream = this.getProcessOutput(is);
+				InputStream is = p.getErrorStream();
+				String errorStream = this.getProcessOutput(is);
 				String output = this.getProcessOutput(p.getInputStream());
 
 				//if verbose mode is on, prints tsp solver output and errors
 				if(this.verbose){
 					System.out.println(output);
-					//System.out.println(errorStream);
+					System.out.println(errorStream);
 					System.out.println("____________________________________");
 				}
 				
@@ -420,19 +424,30 @@ public class WsdExecutor {
 		
 		
 		this.createEdges(graph);
-		if (centrality) {
 			// check if we can compute distances on support nodes
-			int depth = 1;
-			this.createEdges(supportGraph);
-			this.addSupportNodes(supportGraph, depth);
-			this.computeVertexCentrality(supportGraph);
-			if (this.saveGml) 
+		if (centrality) {
+			int depth = 0;
+			//this.createEdges(supportGraph);
+			//this.addSupportNodes(graph, depth);
+			this.computeVertexCentrality(graph);
+			this.distributeCentralityOnEdges(graph);
+			/*if (this.saveGml) 
 				supportGraph.saveToGML("GML/", "supportGraph" + this.progrSaveName);
-			this.copyCentrality(supportGraph.getVerticesList(), graph.getVerticesList());
+			this.copyCentrality(supportGraph.getVerticesList(), graph.getVerticesList());*/
 		}
+			
 		
 		return graph;
 	}
+
+	private void distributeCentralityOnEdges(WsdGraph graph) {
+		ArrayList<WsdVertex> vertexes = graph.getVerticesList();
+		for (HashMap<String, String> edge : graph.getEdgesList()) {
+			double mean = graph.computeMeanCentrality(Integer.parseInt(edge.get("source")), Integer.parseInt(edge.get("target")));
+			graph.setEdgeWeight(Integer.parseInt(edge.get("id")), mean*Float.parseFloat(edge.get("weight")));
+		}	
+	}
+
 
 	private void computeVertexCentrality(WsdGraph graph) {
 		switch (Globals.computeCentrality) {
@@ -477,6 +492,8 @@ public class WsdExecutor {
 	 * @param depth
 	 */
 	private void addSupportNodes(WsdGraph graph, int depth) {
+		if (depth == 0)
+			return;
 		Map<IWord, ArrayList<WsdVertex>> relatedWords = new HashMap<IWord, ArrayList<WsdVertex>>();
 		ArrayList<WsdVertex> vertexes = graph.getVerticesList();
 		for (WsdVertex v : vertexes) {

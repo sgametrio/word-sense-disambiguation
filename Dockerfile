@@ -13,7 +13,7 @@ RUN mvn -B -o package -DskipTests
 
 
 # Executor image (testing build)
-FROM openjdk:8-jre-alpine
+FROM openjdk:8-jre
 COPY --from=builder /app/target/wordsensedisambiguation-0.0.1-SNAPSHOT-jar-with-dependencies.jar /app/target/app.jar
 COPY --from=wsd-env /usr/local/WordNet-3.0 /usr/local/WordNet-3.0
 

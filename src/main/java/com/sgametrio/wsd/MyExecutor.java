@@ -22,6 +22,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.jgrapht.alg.flow.PushRelabelMFImpl.VertexExtension;
+
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -43,16 +46,12 @@ public class MyExecutor {
 	private KelpAdapter kelp = null;
 	
 	//saving params
-	private int progrSaveName = 1;
 	private String fileNameSentences = "sentences";
-	private final Object lock = new Object();
 	private final Object fileLock = new Object();
-	private final Object tspLock = new Object();
 	
 	//execution params
-	private String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
-
-	public boolean verbose = false;
+	
+	
 	
 	private int trial = 1;
 	
@@ -83,32 +82,34 @@ public class MyExecutor {
 		MyGraph graph = this.createDisambiguationGraph(selectedInstances, centrality);
 		graph.setSentence(sentence);
 		//save gml (optional)
-		
-		synchronized (lock) {
-			if(Globals.saveGml){
-				graph.saveToGML(Globals.gmlPath + Globals.fileName+this.progrSaveName + ".gml");
-			}
+	
+		if(Globals.saveGml){
+			graph.saveToGML(Globals.gmlPath + Globals.fileName+ graph.getId() + ".gml");
 		}
 		// Use centrality to disambiguate senses in a word
-		if (centrality) {
+		if (!Globals.runSolver) {
 			this.printCentralityDisambiguation(graph, false);
-		}
-		
-		/* TODO: Make this working with solver: saveToGTSP and generateOutputFile
-		if (Globals.runSolver) {
-			if(graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+this.progrSaveName)){
-				synchronized (tspLock) {
-					this.setTSPSolver();
-					if(this.runSolver()){
+		} else {
+			if (graph.getNodes().size() == 0) {
+				// Graph has no vertexes, nothing to disambiguate, continue;
+				System.out.println("Graph " + graph.getId() + " doesn't have words to disambiguate..");
+			} else if (graph.getNodesIndexByClusters().size() == 1) {
+				System.out.println("Graph " + graph.getId() + " has only 1 cluster, for now prints most common sense");
+				
+			} else {
+				if(graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+graph.getId())){
+					this.setTSPSolver(graph.getId());
+					if(this.runSolver(graph.getId())){
 						this.generateOutputFile(graph);
 					}
-				}	
+				} else {
+					System.err.println("graph " + graph.getId() + " saveToGTSP returned false");
+					graph.saveToGML(Globals.gmlPath + Globals.fileName+graph.getId() + ".gml");
+				}
 			}
+			
 		}
-		*/
-		synchronized (lock) {
-			System.out.println(this.progrSaveName++);
-		}
+		System.out.println("Graph finished: " + graph.getId());
 	}
 	
 	
@@ -211,47 +212,49 @@ public class MyExecutor {
 	
 	
 	/**
-	 * Set configuration parameters by dynamically update configuration file
+	 * Set configuration parameters of solver by:
+	 * * copy runGLKH helper script to runGLKH(graph id here)
+	 * * dynamically update configuration file
 	 * Change param of TSPSolver main file to set input and output files
 	 */
-	private void setTSPSolver(){
+	private void setTSPSolver(int id){
 		
 		BufferedReader oldFileReader = null;
 		BufferedWriter newFileWriter = null;
-		String tempFileName = "tmp_"+Globals.tspSolverFileName;
+		String mySolverName = Globals.tspSolverFileName+id;
 		
 		try {
 			
 			oldFileReader = new BufferedReader(new FileReader(Globals.tspSolverPathFileName));
-			newFileWriter = new BufferedWriter(new FileWriter(Globals.tspSolverHomeDir+tempFileName));
+			newFileWriter = new BufferedWriter(new FileWriter(Globals.tspSolverHomeDir+mySolverName));
 			
 			//reads from the old file and write on the new one
 			String line;
 			while ((line = oldFileReader.readLine()) != null) {
 				//System.out.println(line);
+				if (line.contains("par=TMP")){
+					line = "par=TMP/" + id + ".pid$$.par";
+				}
 				if (line.contains("PROBLEM_FILE")){
-					line = "echo \"PROBLEM_FILE = " + Globals.GTSPLIBDirectory + Globals.fileName+this.progrSaveName+".gtsp\" > $par";
+					line = "echo \"PROBLEM_FILE = " + Globals.GTSPLIBDirectory + Globals.fileName+id+".gtsp\" > $par";
 				}
 				if (line.contains("OUTPUT_TOUR_FILE")){
-					line = "echo \"OUTPUT_TOUR_FILE = " + Globals.GTOURSDirectory + Globals.fileName+this.progrSaveName+".tour\" >> $par";
+					line = "echo \"OUTPUT_TOUR_FILE = " + Globals.GTOURSDirectory + Globals.fileName+id+".tour\" >> $par";
 				}
 				if (line.contains("RUNS")) {
 					line = "echo \"RUNS = " + Globals.runs + "\" >> $par";
 				}
+				if (line.contains("PI_FILES")) {
+					//line = "echo \"PI_FILE = PI_FILES/" + Globals.fileName + "_" + id + ".pi\" >> $par";
+					line = "";
+				}
+				
 				newFileWriter.write(line+"\n");
 			}
 			
 			oldFileReader.close();
 			newFileWriter.close();
-			
-			//delete old file
-			File oldFile = new File(Globals.tspSolverPathFileName);
-			oldFile.delete();
-			
-			// And rename tmp file to old file name
-			File newFile = new File(Globals.tspSolverHomeDir+tempFileName);
-			newFile.renameTo(oldFile);
-			
+		
 		}catch(IOException e){
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 			System.err.println(e);
@@ -264,9 +267,9 @@ public class MyExecutor {
 	 * Runs the tspSolver script. Results are saved in G-TOURS folder.
 	 * @return true if the solver completed its task, false otherwise
 	 */
-	public boolean runSolver(){
+	public boolean runSolver(int id){
 		
-		File solver = new File(Globals.tspSolverPathFileName);
+		File solver = new File(Globals.tspSolverPathFileName+id);
 		if (solver.exists()) {
 			try{
 				//Set permissions
@@ -280,19 +283,19 @@ public class MyExecutor {
 				solver.setReadable(true);
 				solver.setWritable(true);
 				//command to execute the solver
-				ProcessBuilder process = new ProcessBuilder("./" + Globals.tspSolverFileName);
+				ProcessBuilder process = new ProcessBuilder("./" + Globals.tspSolverFileName+id);
 				process.directory(new File(Globals.tspSolverHomeDir));
 
 				Process p = process.start();
 				//get the error stream
-				//InputStream is = p.getErrorStream();
-				//String errorStream = this.getProcessOutput(is);
+				InputStream is = p.getErrorStream();
+				String errorStream = this.getProcessOutput(is);
 				String output = this.getProcessOutput(p.getInputStream());
 
 				//if verbose mode is on, prints tsp solver output and errors
-				if(this.verbose){
+				if(Globals.verbose){
 					System.out.println(output);
-					//System.out.println(errorStream);
+					System.out.println(errorStream);
 					System.out.println("____________________________________");
 				}
 				
@@ -367,9 +370,14 @@ public class MyExecutor {
 			this.myCreateNodes(graph, instance);
 		}
 		this.myCreateEdges(graph);
-		// Add support nodes to compute better centrality
-		this.addSupportNodes(graph, Globals.nodesDepth);
-		this.computeVertexCentrality(graph);		
+		
+		if (centrality) {
+			// Add support nodes to compute better centrality
+			this.addSupportNodes(graph, Globals.nodesDepth);
+			this.computeVertexCentrality(graph);
+			// Distribute centrality on edges
+			this.distributeCentralityOnEdges(graph);
+		}		
 		return graph;
 	}
 
@@ -382,6 +390,16 @@ public class MyExecutor {
 		for (int i = 0; i < to.getNodes().size(); i++) {
 			to.getNodes().get(i).setCentrality(from.getNodes().get(i).getCentrality());
 		}
+	}
+	
+	private void distributeCentralityOnEdges (MyGraph graph) {
+		ArrayList<MyVertex> vertexes = graph.getDisambiguationNodes();
+		for (MyVertex v : vertexes) {
+			for (MyEdge e : v.getEdges()) {
+				double mean = graph.computeMeanCentrality(v, e.getDest());
+				e.setWeight(mean*e.getWeight());
+			}
+		}	
 	}
 
 
@@ -399,7 +417,7 @@ public class MyExecutor {
 
 						// Compute similarity here
 						double edgeWeight = this.kelp.computeTreeSimilarity(vertices.get(i).getTreeGlossRepr(),
-								vertices.get(j).getTreeGlossRepr(), this.treeKernelType);
+								vertices.get(j).getTreeGlossRepr(), Globals.treeKernelType);
 						
 						graph.addEdge(vertices.get(i), vertices.get(j), edgeWeight);
 					}
@@ -512,7 +530,7 @@ public class MyExecutor {
 			// Collego tutti i vertici a quel nodo
 			for (MyVertex v : possibleVertexes) {
 				double weight = this.kelp.computeTreeSimilarity(temp.getTreeGlossRepr(),
-						v.getTreeGlossRepr(), this.treeKernelType);
+						v.getTreeGlossRepr(), Globals.treeKernelType);
 				graph.addEdge(v, temp, weight);
 			}
 		}
@@ -579,7 +597,7 @@ public class MyExecutor {
 			
 			//open reader for the tspSolver output file
 			BufferedReader tourFileReader = new BufferedReader(
-					new FileReader(Globals.tspSolverPathToGTOURS+Globals.fileName+this.progrSaveName+".tour"));
+					new FileReader(Globals.tspSolverPathToGTOURS+Globals.fileName+graph.getId()+".tour"));
 			
 			Map<Integer, MyVertex> disambiguationMap = new HashMap<Integer, MyVertex>();
 			String line;
@@ -591,7 +609,7 @@ public class MyExecutor {
 					read = false;
 				}
 				if(read){
-					MyVertex v = graph.getNodeById(Integer.parseInt(line.trim())-1);//-1 because solver ids starts from 1, our vertices ids starts from 0
+					MyVertex v = graph.getNodeByIndex(Integer.parseInt(line.trim())-1);//-1 because solver ids starts from 1, our vertices ids starts from 0
 					disambiguationMap.put(v.getSentenceIndex(), v);
 				}
 				if(line.equalsIgnoreCase("TOUR_SECTION")){
@@ -605,7 +623,7 @@ public class MyExecutor {
 			
 		} catch (FileNotFoundException e) {
 			//output file of tsp solver not created, the graph size wasn't >1
-			log.write(Globals.fileName+this.progrSaveName+"\n");
+			log.write(Globals.fileName+graph.getId()+"\n");
 			log.close();
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 			System.err.println(e);
@@ -613,25 +631,5 @@ public class MyExecutor {
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 			System.err.println(e);
 		}
-	}
-	
-	public void setTreeKernelType(String kernelType){
-		switch(kernelType){
-			case "subTree":
-				this.treeKernelType = kernelType;
-				break;
-			case "subsetTree":
-				this.treeKernelType = kernelType;
-				break;
-			case "partialTree":
-				this.treeKernelType = kernelType;
-				break;
-			case "smoothedPartialTree":
-				this.treeKernelType = kernelType;
-				break;
-			default:
-				this.treeKernelType = "subTree";
-				System.err.println("defined kernelType \""+kernelType+"\" has not been found. Used default "+treeKernelType);
-		}	
 	}
 }
