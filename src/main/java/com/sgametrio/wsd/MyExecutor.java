@@ -95,6 +95,10 @@ public class MyExecutor {
 				System.out.println("Graph " + graph.getId() + " doesn't have words to disambiguate..");
 			} else if (graph.getNodesIndexByClusters().size() == 1) {
 				System.out.println("Graph " + graph.getId() + " has only 1 cluster, for now prints most common sense");
+				Map<Integer, MyVertex> disambiguationMap = new HashMap<Integer, MyVertex>();
+				MyVertex v = graph.getDisambiguationNodes().get(0);
+				disambiguationMap.put(v.getSentenceIndex(), v);
+				this.printMapToFile(disambiguationMap, Globals.fileName, Globals.evaluation, false);
 				
 			} else {
 				if(graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+graph.getId())){
@@ -292,10 +296,10 @@ public class MyExecutor {
 				String errorStream = this.getProcessOutput(is);
 				String output = this.getProcessOutput(p.getInputStream());
 
+				System.err.print(errorStream);
 				//if verbose mode is on, prints tsp solver output and errors
 				if(Globals.verbose){
 					System.out.println(output);
-					System.out.println(errorStream);
 					System.out.println("____________________________________");
 				}
 				
@@ -381,17 +385,6 @@ public class MyExecutor {
 		return graph;
 	}
 
-	/**
-	 * Copy centrality from `from` to `to`. `to` has the same initial `from` vertexes. `from` can have more
-	 * @param from
-	 * @param to
-	 */
-	private void copyCentrality(MyGraph from, MyGraph to) {
-		for (int i = 0; i < to.getNodes().size(); i++) {
-			to.getNodes().get(i).setCentrality(from.getNodes().get(i).getCentrality());
-		}
-	}
-	
 	private void distributeCentralityOnEdges (MyGraph graph) {
 		ArrayList<MyVertex> vertexes = graph.getDisambiguationNodes();
 		for (MyVertex v : vertexes) {

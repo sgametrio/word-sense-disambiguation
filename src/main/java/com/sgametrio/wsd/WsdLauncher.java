@@ -75,15 +75,7 @@ public class WsdLauncher {
 			doc.getDocumentElement().normalize();
 			//get all sentences in xml file
 			NodeList allSentences = doc.getElementsByTagName("sentence");
-			// Delete old result file
-			if (centrality) {
-				FileWriter deleteOldResultsFile = new FileWriter(Globals.resultsPath + Globals.fileNameCentrality + Globals.resultsFileName);
-				deleteOldResultsFile.close();
-			} else {
-				FileWriter deleteOldResultsFile = new FileWriter(Globals.resultsPath + Globals.fileName + Globals.resultsFileName);
-				deleteOldResultsFile.close();
-			}
-			
+					
 			// Create thread pool
 			ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());			
 			//iterate over all sentences and send them to inputExtractor to be processed
@@ -113,7 +105,16 @@ public class WsdLauncher {
 		// Remember to close dictionary
 		myExecutor.closeDictionary();
 		Instant after = Instant.now();
-		System.out.println("Time executed (in seconds): " + Duration.between(before, after));
+		System.out.println("Time executed: " + Duration.between(before, after));
+	}
+	
+	/**
+	 * Disambiguate a single sentence and create files to analyze it in-depth
+	 * @param centrality
+	 */
+	public void launchSingleSentence(boolean centrality) {
+		MyExecutor exec = new MyExecutor();
+		
 	}
 	
 	/**
@@ -163,6 +164,15 @@ public class WsdLauncher {
 		}
 		if (!results.exists()) {
 			results.mkdirs();
+		} else {
+			// delete old results file
+			File old;
+			if (!Globals.runSolver) {
+				old = new File(Globals.resultsPath+Globals.fileNameCentrality+Globals.resultsFileName);
+			} else {
+				old = new File(Globals.resultsPath+Globals.fileName+Globals.resultsFileName);
+			}
+			old.delete();
 		}
 		log.delete();
 	}

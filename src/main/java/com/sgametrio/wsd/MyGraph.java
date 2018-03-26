@@ -215,8 +215,8 @@ public class MyGraph {
 				if (matrix[i][j] == -1)
 					invertedMatrix[i][j] = -1;
 				else {
-					// Multiply by 100 to lose only a .1 of precision and not 1
-					double value = matrix[i][j]*10;
+					// Multiply by 10 to lose only a .1 of precision and not 1
+					double value = matrix[i][j]*100;
 					invertedMatrix[i][j] = (int)Math.round(value);
 				}
 			}
@@ -225,7 +225,6 @@ public class MyGraph {
 		int max = this.getMaxValue(invertedMatrix);
 		for (int i = 0; i < size; i++) {
 			for (int j = 0; j < matrix[i].length; j++) {
-				// Add 2 because we have to avoid edge case like when it has no edges so the weight it is -1
 				invertedMatrix[i][j] = max - invertedMatrix[i][j] + 1;
 			}
 		}
