@@ -53,10 +53,10 @@ public class WsdLauncher {
 	private static void launchDisambiguationEvaluation(){
 		MyExecutor myExecutor = new MyExecutor();
 		System.out.println("--- Evaluation started ---");
+		System.out.println("Dataset used: " + Globals.currentDataset);
 		System.out.println("Configuration params: ");
 		if (Globals.centrality) {
 			System.out.println("Compute centrality by: " + Globals.computeCentrality);
-			
 			System.out.println("Support nodes depth: " + Globals.nodesDepth);
 		}
 		System.out.println("Save GML: " + Globals.saveGml);
@@ -140,7 +140,16 @@ public class WsdLauncher {
 		File gtsp = new File(Globals.gtspPath);
 		File tour = new File(Globals.tourPath);
 		File results = new File(Globals.resultsPath);
+		File graphsInfo = new File(Globals.graphsInfoPath);
 		File log = new File("log.txt");
+		
+		if (graphsInfo.isDirectory()) {
+			for(File file: graphsInfo.listFiles()){
+				file.delete();
+			}
+		} else {
+			graphsInfo.mkdirs();
+		}
 		if (gml.isDirectory()) {
 			for(File gmlFile: gml.listFiles()){
 				gmlFile.delete();

@@ -13,14 +13,10 @@ Use vertex centrality measures combined with syntactic similarity computed dista
 		* depth 3 seems the best in terms of results/computation time 
 
 * Maybe working on examples inside words could give us better results
-* Adding support nodes (like in the paper) without connection between disambiguation nodes and then compute centrality without running solver.
+* Adding support nodes (like in the paper) without connection between disambiguation nodes and then compute centrality without running solver. (see if edges are created or we have many graphs with nodes with zero centrality)
 
 ## Possible future work
 * Move all filesystem resources stream to getResourceAsAStream
-* Focus on performance (reduce WordNet accesses, for example)
-	* Multi-thread performance (done with executorService and thread pool)
-		* computeDependencyTree costs much (it is called million times)
-	* Include timings in final report
 * Make some tests to instantly identify:		
 	* centrality 0.0
 	* disambiguated sense isn't the one with max centrality

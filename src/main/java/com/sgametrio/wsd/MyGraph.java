@@ -18,6 +18,7 @@ public class MyGraph {
 	private String sentence = "";
 
 	private ArrayList<MyVertex> vertexes;
+	private String sentenceId = "";
 
 	public MyGraph() {
 		id = progressiveId++;
@@ -85,7 +86,7 @@ public class MyGraph {
 		String gml = "";
 		gml += "graph [\n"
 				+ "\tcomment \"" + getSentence().replaceAll("\"", "") + "\"\n"
-				+ "\tlabel \"" + getSentence().replaceAll("\"", "") + "\"\n";
+				+ "\tlabel \"" + getSentenceId() + "\"\n";
 		// Add nodes, and then edges
 		for (MyVertex v : this.getNodes()) {
 			gml += v.toGML();
@@ -109,7 +110,7 @@ public class MyGraph {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Save to GTSP format file, to be read by runGLKH
 	 * @param path
@@ -331,5 +332,24 @@ public class MyGraph {
 
 	public int getId() {
 		return this.id;
+	}
+
+	/**
+	 * Print to file useful information like: 
+	 * * all nodes in a cluster have centrality 0
+	 * * if at least two nodes in a cluster have similar centrality (by similar it can be 5%)
+	 * * disambiguated sense isn't one with max centrality in cluster (can happen on TSP)
+	 * @param filePath
+	 */
+	public void printUsefulInformation(String filePath) {
+		
+	}
+
+	public void setSentenceId(String sentenceId) {
+		this.sentenceId  = sentenceId;		
+	}
+	
+	public String getSentenceId() {
+		return this.sentenceId;
 	}
 }

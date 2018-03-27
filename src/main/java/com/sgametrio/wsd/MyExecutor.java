@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.attribute.PosixFilePermission;
+import java.time.Instant;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -79,12 +80,21 @@ public class MyExecutor {
 		for (InputInstance i : instances) {
 			sentence += i.term + " ";
 		}
+		
 		MyGraph graph = this.createDisambiguationGraph(selectedInstances);
 		graph.setSentence(sentence);
-		//save gml (optional)
-	
+		// get sentence id if it has at least one word to disambiguate
+		/*if (instances.size() > 0) {
+			int last_dot = instances.get(0).id.lastIndexOf(".");
+			String sentence_id = instances.get(0).id.substring(0, last_dot - 1);
+			graph.setSentenceId(sentence_id);
+			if (Globals.graphVerbosity) {
+				graph.printUsefulInformation(Globals.graphsInfoPath + Globals.fileName + graph.getSentenceId() + Instant.now().toString() + ".txt");
+			}
+		}*/
+		
 		if(Globals.saveGml){
-			graph.saveToGML(Globals.gmlPath + Globals.fileName+ graph.getId() + ".gml");
+			graph.saveToGML(Globals.gmlPath + Globals.fileName + graph.getId() + ".gml");
 		}
 		// Use centrality to disambiguate senses in a word
 		if (!Globals.runSolver) {
