@@ -13,9 +13,11 @@ Use vertex centrality measures combined with syntactic similarity computed dista
 		* depth 3 seems the best in terms of results/computation time 
 
 * Maybe working on examples inside words could give us better results
-* Adding support nodes (like in the paper) without connection between disambiguation nodes and then compute centrality without running solver. (see if edges are created or we have many graphs with nodes with zero centrality)
+
 
 ## Possible future work
+* Don't create edges between distant words in a sentence
+
 * Move all filesystem resources stream to getResourceAsAStream
 * Make some tests to instantly identify:		
 	* centrality 0.0

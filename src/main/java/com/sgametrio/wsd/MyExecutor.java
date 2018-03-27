@@ -49,7 +49,7 @@ public class MyExecutor {
 	//saving params
 	private String fileNameSentences = "sentences";
 	private final Object fileLock = new Object();
-	
+	private final Object graphLock = new Object();
 	//execution params
 	
 	
@@ -263,6 +263,9 @@ public class MyExecutor {
 					//line = "echo \"PI_FILE = PI_FILES/" + Globals.fileName + "_" + id + ".pi\" >> $par";
 					line = "";
 				}
+				if (line.contains("MAX_TRIALS")) {
+					line = "";
+				}
 				
 				newFileWriter.write(line+"\n");
 			}
@@ -377,9 +380,10 @@ public class MyExecutor {
 	 * index and evaluation params) having that POS as value
 	 */
 	private MyGraph createDisambiguationGraph(ArrayList<InputInstance> instances){
-		
-		MyGraph graph = new MyGraph();
-				
+		MyGraph graph = null;
+		synchronized (graphLock) {
+			graph = new MyGraph();
+		}		
 		// for every instance, I have to find all senses
 		for (InputInstance instance : instances) {
 			this.myCreateNodes(graph, instance);
@@ -396,17 +400,24 @@ public class MyExecutor {
 		return graph;
 	}
 
+	/**
+	 * Set edge weight between every node in the graph as the centrality mean between these nodes
+	 * @param graph
+	 */
 	private void distributeCentralityOnEdges (MyGraph graph) {
 		ArrayList<MyVertex> vertexes = graph.getDisambiguationNodes();
 		for (MyVertex v : vertexes) {
 			for (MyEdge e : v.getEdges()) {
 				double mean = graph.computeMeanCentrality(v, e.getDest());
-				e.setWeight(mean*e.getWeight());
+				e.setWeight(mean);
 			}
 		}	
 	}
 
-
+	/**
+	 * Create an edge between every node in the graph and weigh this edge as the syntactic similarity
+	 * @param graph
+	 */
 	private void myCreateEdges(MyGraph graph) {
 		//Edge creation
 		ArrayList<MyVertex> vertices = graph.getNodes();
@@ -416,14 +427,17 @@ public class MyExecutor {
 			for(int j = i+1; j < size; j++){
 				//doesn't create edges between vertexes representing the same word 
 				if( vertices.get(i).getSentenceIndex() != vertices.get(j).getSentenceIndex()){
-					// Se due sensi disambiguano due sentence index diversi e hanno la stessa gloss key allora ha senso computare
-					if ( ! ( vertices.get(i).getGlossKey().equalsIgnoreCase(vertices.get(j).getGlossKey()))){
+					// Do not create edges between distant words (Let's say 10 words distance)
+					if (Math.abs(vertices.get(i).getSentenceIndex() - vertices.get(j).getSentenceIndex()) < 10) {
+						// Se due sensi disambiguano due sentence index diversi e hanno la stessa gloss key allora ha senso computare
+						if ( ! ( vertices.get(i).getGlossKey().equalsIgnoreCase(vertices.get(j).getGlossKey()))){
 
-						// Compute similarity here
-						double edgeWeight = this.kelp.computeTreeSimilarity(vertices.get(i).getTreeGlossRepr(),
-								vertices.get(j).getTreeGlossRepr(), Globals.treeKernelType);
-						
-						graph.addEdge(vertices.get(i), vertices.get(j), edgeWeight);
+							// Compute similarity here
+							double edgeWeight = this.kelp.computeTreeSimilarity(vertices.get(i).getTreeGlossRepr(),
+									vertices.get(j).getTreeGlossRepr(), Globals.treeKernelType);
+							
+							graph.addEdge(vertices.get(i), vertices.get(j), edgeWeight);
+						}
 					}
 				}
 			}
@@ -541,6 +555,13 @@ public class MyExecutor {
 		this.addSupportNodes(graph, depth-1);
 	}
 	
+	/**
+	 * Compute KPP centrality on every nodes present in the graph.
+	 * KPP is computed as sum of the distance divided by nodes cardinality.
+	 * Edge weight here is node similarity (higher is more similar, so, the node, is more central).
+	 * So I do not reverse edge weight like the original formula says (because the original formula counts on node distance)
+	 * @param graph
+	 */
 	private void computeKppVertexCentrality(MyGraph graph) {
 		// Weight vertexes by kpp centrality
 		ArrayList<MyVertex> vertexes = graph.getNodes();
@@ -618,6 +639,13 @@ public class MyExecutor {
 				}
 				if(line.equalsIgnoreCase("TOUR_SECTION")){
 					read = true;
+				}
+				if(line.equalsIgnoreCase("Length = ")){
+					// Check that length is positive, otherwise we have a problem
+					int length = Integer.parseInt(line.split(" ")[4]);
+					if (length <= 0) {
+						System.out.println("[WARNING] Tour has a negative length of: " + length + " on sentence " + graph.getSentenceId());
+					}
 				}
 			}
 			

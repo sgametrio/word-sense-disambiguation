@@ -20,7 +20,7 @@
 * Senseval3: 39.7
 * All: 39.4
 
-##### con depth=3
+##### depth=3
 * MiniSenseval3: 33.3
 * Senseval2: 44.5
 * Senseval3: 40.7
@@ -36,3 +36,11 @@
 * Semeval2015: 48.6
 * Senseval3: 38.2
 * All: 41.3
+
+### Distribute centrality on edges (commit:4e1025842602099e2feadc8bb7ac8eb2923155ba)
+#### weight = mean*weight
+* All: 41.5
+
+#### mean instead of weight
+* All: 41.2
+

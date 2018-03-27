@@ -141,6 +141,7 @@ public class WsdLauncher {
 		File tour = new File(Globals.tourPath);
 		File results = new File(Globals.resultsPath);
 		File graphsInfo = new File(Globals.graphsInfoPath);
+		File pi_files = new File(Globals.piFilesPath);
 		File log = new File("log.txt");
 		
 		if (graphsInfo.isDirectory()) {
@@ -164,6 +165,11 @@ public class WsdLauncher {
 		} else {
 			gtsp.mkdirs();
 		}
+		if (pi_files.isDirectory()) {
+			for(File pi: pi_files.listFiles()){
+				pi.delete();
+			}
+		} 
 		if (tour.isDirectory()) {
 			for(File tourFile: tour.listFiles()){
 				tourFile.delete();

@@ -1,9 +1,11 @@
 package com.sgametrio.wsd;
 
 import java.io.BufferedWriter;
+import java.lang.Math;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -132,7 +134,7 @@ public class MyGraph {
 		String content = "";
 		content += "NAME : " + filename + ".gtsp\n" ;
 		content += "TYPE : GTSP\n";
-		content += "COMMENT : wsd graph with edges weighted by centrality\n";
+		content += "COMMENT : " + getSentenceId() + " " + getSentence() + "\n";
 		content += "DIMENSION : "+ size +"\n";
 		content += "GTSP_SETS : "+ clusters.size() +"\n";
 		content += "EDGE_WEIGHT_TYPE : EXPLICIT \n";
@@ -174,7 +176,7 @@ public class MyGraph {
 	 */
 	public ArrayList<ArrayList<Integer>> getNodesIndexByClusters() {
 		ArrayList<ArrayList<Integer>> clusters = new ArrayList<ArrayList<Integer>>();
-		for (ArrayList<MyVertex> nodes : this.getNodesByClusters().values()) {
+		for (ArrayList<MyVertex> nodes : this.getNodesByCluster().values()) {
 			ArrayList<Integer> cluster = new ArrayList<Integer>();
 			for (MyVertex node : nodes) {
 				cluster.add(getNodeIndexById(node.getId()));
@@ -189,7 +191,8 @@ public class MyGraph {
 	 * without support nodes
 	 * @return map
 	 */
-	private Map<Integer, ArrayList<MyVertex>> getNodesByClusters() {
+	private Map<Integer, ArrayList<MyVertex>> getNodesByCluster() {
+		// Pay attention that I choose only disambiguation nodes
 		ArrayList<MyVertex> vertexes = this.getDisambiguationNodes();
 		Map<Integer, ArrayList<MyVertex>> map = new HashMap<Integer, ArrayList<MyVertex>>();
 		for (MyVertex v : vertexes) {
@@ -216,7 +219,7 @@ public class MyGraph {
 				if (matrix[i][j] == -1)
 					invertedMatrix[i][j] = -1;
 				else {
-					// Multiply by 10 to lose only a .1 of precision and not 1
+					// Multiply by 100 to lose only a .01 of precision and not 1 using Math.round
 					double value = matrix[i][j]*100;
 					invertedMatrix[i][j] = (int)Math.round(value);
 				}
@@ -337,12 +340,37 @@ public class MyGraph {
 	/**
 	 * Print to file useful information like: 
 	 * * all nodes in a cluster have centrality 0
-	 * * if at least two nodes in a cluster have similar centrality (by similar it can be 5%)
-	 * * disambiguated sense isn't one with max centrality in cluster (can happen on TSP)
+	 * * if at least two nodes in a cluster have similar centrality (by similar I mean +/- 5%)
 	 * @param filePath
 	 */
 	public void printUsefulInformation(String filePath) {
-		
+		PrintWriter file = null;
+		try {
+			file = new PrintWriter(new FileWriter(filePath, false));
+			Map<Integer, ArrayList<MyVertex>> nodes = this.getNodesByCluster();
+			for (Integer key : nodes.keySet()) {
+				ArrayList<MyVertex> clusterNodes = nodes.get(key);
+				boolean zeroCentrality = true;
+				double max = 0;
+				int id = -1;
+				for (MyVertex v : clusterNodes) {
+					double centrality = v.getCentrality();
+					if (centrality != 0.0) {
+						zeroCentrality = false;
+						if (centrality > max) {
+							id = v.getId();
+							max = centrality;
+						}
+					}
+				}
+				// Check clusters with no centralities
+				if (zeroCentrality) {
+					file.write("Sentence " + this.getSentenceId() + " has cluster " + key + " with ZERO centrality\n");
+				} 
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public void setSentenceId(String sentenceId) {

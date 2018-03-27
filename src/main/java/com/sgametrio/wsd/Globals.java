@@ -37,6 +37,8 @@ public class Globals {
 	public static final String tspSolverHomeDir = "src/main/resources/GLKH-1.0/";
 	public static final String GTSPLIBDirectory = "GTSPLIB/";
 	public static final String GTOURSDirectory = "G-TOURS/";
+
+	public static final String piFiles = "PI_FILES/";
 	public static final String tspSolverPathToGTSPLIB = tspSolverHomeDir + GTSPLIBDirectory;
 	public static final String tspSolverPathToGTOURS = tspSolverHomeDir + GTOURSDirectory;
 	public static final String tspSolverFileName = "runGLKH";
@@ -46,6 +48,7 @@ public class Globals {
 	public static final String graphsInfoPath = "graphs-extra/";
 	public static final String gtspPath = tspSolverPathToGTSPLIB;
 	public static final String tourPath = tspSolverPathToGTOURS;
+	public static final String piFilesPath = tspSolverHomeDir + piFiles;
 	
 	public static final String fileNameCentrality = currentDataset + "_centrality";
 	public static final String fileName = currentDataset + "_subTrees";
@@ -79,6 +82,7 @@ public class Globals {
 	// true if you want to compute node centrality and distribute it on edges
 	public static boolean centrality = true;
 	
-	public static String sentenceId = "d000.s000";	
+	public static String sentenceId = "d000.s000";
+	
 
 }
