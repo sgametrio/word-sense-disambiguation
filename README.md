@@ -13,6 +13,7 @@ Use vertex centrality measures combined with syntactic similarity computed dista
 		* depth 3 seems the best in terms of results/computation time 
 
 * Maybe working on examples inside words could give us better results
+* Adding support nodes (like in the paper) without connection between disambiguation nodes and then compute centrality without running solver.
 
 ## Possible future work
 * Move all filesystem resources stream to getResourceAsAStream

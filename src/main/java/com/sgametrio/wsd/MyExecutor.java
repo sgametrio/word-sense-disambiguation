@@ -71,7 +71,7 @@ public class MyExecutor {
 	 * the lemma, the word as it was written in the sentence, the index of the word in the sentence and
 	 * the params of the word given in the evaluation framework
 	 */
-	public void performDisambiguation(ArrayList<InputInstance> instances, boolean centrality){
+	public void performDisambiguation(ArrayList<InputInstance> instances){
 		ArrayList<InputInstance> selectedInstances = this.mySelectPos(instances);
 
 		//create the graph
@@ -79,7 +79,7 @@ public class MyExecutor {
 		for (InputInstance i : instances) {
 			sentence += i.term + " ";
 		}
-		MyGraph graph = this.createDisambiguationGraph(selectedInstances, centrality);
+		MyGraph graph = this.createDisambiguationGraph(selectedInstances);
 		graph.setSentence(sentence);
 		//save gml (optional)
 	
@@ -101,6 +101,7 @@ public class MyExecutor {
 				this.printMapToFile(disambiguationMap, Globals.fileName, Globals.evaluation, false);
 				
 			} else {
+				// Run solver to disambiguate senses
 				if(graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+graph.getId())){
 					this.setTSPSolver(graph.getId());
 					if(this.runSolver(graph.getId())){
@@ -365,7 +366,7 @@ public class MyExecutor {
 	 * @param pos_lemmaWordIndexParams: a map having POS as key and a list of word (with their lemma
 	 * index and evaluation params) having that POS as value
 	 */
-	private MyGraph createDisambiguationGraph(ArrayList<InputInstance> instances, boolean centrality){
+	private MyGraph createDisambiguationGraph(ArrayList<InputInstance> instances){
 		
 		MyGraph graph = new MyGraph();
 				
@@ -375,7 +376,7 @@ public class MyExecutor {
 		}
 		this.myCreateEdges(graph);
 		
-		if (centrality) {
+		if (Globals.centrality) {
 			// Add support nodes to compute better centrality
 			this.addSupportNodes(graph, Globals.nodesDepth);
 			this.computeVertexCentrality(graph);

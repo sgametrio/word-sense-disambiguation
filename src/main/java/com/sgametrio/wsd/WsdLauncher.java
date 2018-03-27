@@ -36,7 +36,7 @@ public class WsdLauncher {
 //				"The water, spilled over the tops of these, \"river\" banks during the last flood." //river
 		};
 		//launchDisambiguationEvaluationWsd(false, Globals.saveGml, false, Globals.runSolver, false);
-		launchDisambiguationEvaluation(true);
+		launchDisambiguationEvaluation();
 		//launchEvaluator(Globals.currentGoldFile, "RESULTS/centrality_wsdResults.KEY");
 		//launchEvaluator(Globals.pathToSenseval3 + Globals.goldFileSuffix, "RESULTS/senseval3_centrality.KEY");
 		//launchEvaluator(Globals.currentGoldFile, "RESULTS/ALL_subTrees_wsdResults.KEY");
@@ -50,11 +50,11 @@ public class WsdLauncher {
 	 * @param verbose
 	 * @param treeKernelType
 	 */
-	private static void launchDisambiguationEvaluation(boolean centrality){
+	private static void launchDisambiguationEvaluation(){
 		MyExecutor myExecutor = new MyExecutor();
 		System.out.println("--- Evaluation started ---");
 		System.out.println("Configuration params: ");
-		if (centrality) {
+		if (Globals.centrality) {
 			System.out.println("Compute centrality by: " + Globals.computeCentrality);
 			
 			System.out.println("Support nodes depth: " + Globals.nodesDepth);
@@ -82,7 +82,7 @@ public class WsdLauncher {
 			for (int sentIndex = 0; sentIndex < allSentences.getLength(); sentIndex++) {
 				Node sentence = allSentences.item(sentIndex);
 				ArrayList<InputInstance> instances = InputExtractor.myExtractInput(sentence);
-				SentenceRunner runner = new SentenceRunner(myExecutor, instances, centrality);
+				SentenceRunner runner = new SentenceRunner(myExecutor, instances);
 			    executor.execute(runner);
 			}
 			
@@ -112,7 +112,7 @@ public class WsdLauncher {
 	 * Disambiguate a single sentence and create files to analyze it in-depth
 	 * @param centrality
 	 */
-	public void launchSingleSentence(boolean centrality) {
+	public void launchSingleSentence() {
 		MyExecutor exec = new MyExecutor();
 		
 	}

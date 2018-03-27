@@ -22,7 +22,7 @@ public class Globals {
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
-	public static final String currentDataset = MediumSenseval3;
+	public static final String currentDataset = Senseval3;
 	public static int nodesDepth = 0;
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
@@ -68,10 +68,13 @@ public class Globals {
 	// Current tree
 	public static final String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
 
-	// Execution parameters
+	/*** Execution parameters ***/
 	public static boolean saveGml = false;
+	public static boolean verbose = false;
+	// true if you want to use solver to disambiguate, false if you want to disambiguate by centrality
 	public static boolean runSolver = true;
 	public static boolean evaluation = true;
-	public static boolean verbose = false;
+	// true if you want to compute node centrality and distribute it on edges
+	public static boolean centrality = true;
 
 }
