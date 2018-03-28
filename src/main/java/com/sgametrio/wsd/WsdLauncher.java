@@ -19,6 +19,7 @@ import org.w3c.dom.NodeList;
 
 import evaluation.InputExtractor;
 import evaluation.InputInstance;
+import evaluation.InputSentence;
 import evaluation.Scorer;
 
 public class WsdLauncher {
@@ -81,8 +82,8 @@ public class WsdLauncher {
 			//iterate over all sentences and send them to inputExtractor to be processed
 			for (int sentIndex = 0; sentIndex < allSentences.getLength(); sentIndex++) {
 				Node sentence = allSentences.item(sentIndex);
-				ArrayList<InputInstance> instances = InputExtractor.myExtractInput(sentence);
-				SentenceRunner runner = new SentenceRunner(myExecutor, instances);
+				InputSentence iSentence = InputExtractor.myExtractInput(sentence);
+				SentenceRunner runner = new SentenceRunner(myExecutor, iSentence);
 			    executor.execute(runner);
 			}
 			

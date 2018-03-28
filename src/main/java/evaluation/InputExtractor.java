@@ -56,13 +56,14 @@ public class InputExtractor {
 		return pos_lemmaWordIndexParams;
 	}
 	
-	public static ArrayList<InputInstance> myExtractInput(Node xmlSentence){
-		ArrayList<InputInstance> instances = new ArrayList<InputInstance>();
-		
+	public static InputSentence myExtractInput(Node xmlSentence){
+		InputSentence sentence = new InputSentence();
 		if (xmlSentence.getNodeType() == Node.ELEMENT_NODE) {
 			int wordIndex = 1;	
 			Element s = (Element) xmlSentence;
-			NodeList children = s.getChildNodes(); 
+			NodeList children = s.getChildNodes();
+			sentence.instances = new ArrayList<InputInstance>();
+			sentence.sentence = xmlSentence.getTextContent();
 			int numberOfInstances = 0;
 			for(int i = 0; i<children.getLength(); i++){
 				Node child = children.item(i);
@@ -81,17 +82,18 @@ public class InputExtractor {
 					}
 					InputInstance instance = new InputInstance();
 					instance.id = params;
+					sentence.sentenceId = s.getAttribute("id");
 					instance.lemma = lemma;
 					instance.index = wordIndex;
 					instance.pos = pos;
 					instance.term = child.getTextContent();
-					instances.add(instance);
+					sentence.instances.add(instance);
 					wordIndex++;
 				}
 			}
-			if(numberOfInstances == 1)
-				System.out.println("Only 1 instance to disambiguate");
+			/*if(numberOfInstances == 1)
+				System.out.println("Only 1 instance to disambiguate");*/
 		}
-		return instances;
+		return sentence;
 	}
 }

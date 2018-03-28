@@ -59,7 +59,8 @@ public class MyGraph {
 	public void addEdge(MyVertex source, MyVertex target, double weight) {
 		int indexS = vertexes.indexOf(source);
 		int indexT = vertexes.indexOf(target);
-		if (indexS != -1 && indexT != -1 && weight >= 0.0) {
+		// If edge weight is ZERO or less, doesn't create the edge
+		if (indexS != -1 && indexT != -1 && weight > 0.0) {
 			source.addEdge(target, weight);
 			// Undirected graph
 			target.addEdge(source, weight);
@@ -134,7 +135,7 @@ public class MyGraph {
 		String content = "";
 		content += "NAME : " + filename + ".gtsp\n" ;
 		content += "TYPE : GTSP\n";
-		content += "COMMENT : " + getSentenceId() + " " + getSentence() + "\n";
+		content += "COMMENT : " + getSentenceId() + " " + getSentence().replaceAll("\n", " ") + "\n";
 		content += "DIMENSION : "+ size +"\n";
 		content += "GTSP_SETS : "+ clusters.size() +"\n";
 		content += "EDGE_WEIGHT_TYPE : EXPLICIT \n";
@@ -340,37 +341,54 @@ public class MyGraph {
 	/**
 	 * Print to file useful information like: 
 	 * * all nodes in a cluster have centrality 0
-	 * * if at least two nodes in a cluster have similar centrality (by similar I mean +/- 5%)
 	 * @param filePath
+	 * @return 
 	 */
-	public void printUsefulInformation(String filePath) {
-		PrintWriter file = null;
-		try {
-			file = new PrintWriter(new FileWriter(filePath, false));
-			Map<Integer, ArrayList<MyVertex>> nodes = this.getNodesByCluster();
-			for (Integer key : nodes.keySet()) {
-				ArrayList<MyVertex> clusterNodes = nodes.get(key);
-				boolean zeroCentrality = true;
-				double max = 0;
-				int id = -1;
-				for (MyVertex v : clusterNodes) {
-					double centrality = v.getCentrality();
-					if (centrality != 0.0) {
-						zeroCentrality = false;
-						if (centrality > max) {
-							id = v.getId();
-							max = centrality;
-						}
+	public boolean printUsefulInformation(String filePath) {
+		String content = "";
+		Map<Integer, ArrayList<MyVertex>> nodes = this.getNodesByCluster();
+		for (Integer key : nodes.keySet()) {
+			ArrayList<MyVertex> clusterNodes = nodes.get(key);
+			boolean zeroCentrality = true;
+			double max = 0;
+			int id = -1;
+			for (MyVertex v : clusterNodes) {
+				double centrality = v.getCentrality();
+				if (centrality != 0.0) {
+					zeroCentrality = false;
+					if (centrality > max) {
+						id = v.getId();
+						max = centrality;
 					}
 				}
-				// Check clusters with no centralities
-				if (zeroCentrality) {
-					file.write("Sentence " + this.getSentenceId() + " has cluster " + key + " with ZERO centrality\n");
-				} 
+				// Check if there are edges with weight == 0
+				for (MyEdge e : v.getEdges()) {
+					if (e.getWeight() < 0) {
+						content += "edge " + e.getId() +  " with weight " + e.getWeight() + "\n";
+					}
+				}
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
+			// Check clusters with no centralities
+			if (zeroCentrality) {
+				content += "Sentence " + this.getSentenceId() + " has cluster " + key + " with ZERO centrality\n";
+			} 
 		}
+		// If there's something to write
+		if (content.length() != 0) {
+			System.out.println("Logging for graph " + this.getId());
+			PrintWriter file = null;
+			try {
+				file = new PrintWriter(new FileWriter(filePath, false));
+				file.write(content);
+				file.close();
+				return true;
+			} catch (IOException e) {
+				e.printStackTrace();
+				return false;
+			}
+		}
+		return false;
+		
 	}
 
 	public void setSentenceId(String sentenceId) {

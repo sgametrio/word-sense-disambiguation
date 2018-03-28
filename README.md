@@ -16,7 +16,7 @@ Use vertex centrality measures combined with syntactic similarity computed dista
 
 
 ## Possible future work
-* Don't create edges between distant words in a sentence
+* Don't create edges between distant words in a sentence, maybe a single sentence is composed by multiple, separate, logical sentences
 
 * Move all filesystem resources stream to getResourceAsAStream
 * Make some tests to instantly identify:		

@@ -36,6 +36,7 @@ import edu.mit.jwi.item.IWordID;
 import edu.mit.jwi.item.Pointer;
 import edu.stanford.nlp.trees.Tree;
 import evaluation.InputInstance;
+import evaluation.InputSentence;
 
 import com.sgametrio.wsd.KelpAdapter;
 
@@ -68,31 +69,18 @@ public class MyExecutor {
 	}
 	/**
 	 * Calls all the functions needed to perform the disambiguation
-	 * @param instances a map having word POS as keys and an array containing
+	 * @param input a map having word POS as keys and an array containing
 	 * the lemma, the word as it was written in the sentence, the index of the word in the sentence and
 	 * the params of the word given in the evaluation framework
 	 */
-	public void performDisambiguation(ArrayList<InputInstance> instances){
-		ArrayList<InputInstance> selectedInstances = this.mySelectPos(instances);
+	public void performDisambiguation(InputSentence input){
+		ArrayList<InputInstance> selectedInstances = this.mySelectPos(input.instances);
 
-		//create the graph
-		String sentence = "";
-		for (InputInstance i : instances) {
-			sentence += i.term + " ";
-		}
-		
-		MyGraph graph = this.createDisambiguationGraph(selectedInstances);
-		graph.setSentence(sentence);
-		// get sentence id if it has at least one word to disambiguate
-		/*if (instances.size() > 0) {
-			int last_dot = instances.get(0).id.lastIndexOf(".");
-			String sentence_id = instances.get(0).id.substring(0, last_dot - 1);
-			graph.setSentenceId(sentence_id);
-			if (Globals.graphVerbosity) {
-				graph.printUsefulInformation(Globals.graphsInfoPath + Globals.fileName + graph.getSentenceId() + Instant.now().toString() + ".txt");
-			}
-		}*/
-		
+		input.instances.clear();
+		input.instances.addAll(selectedInstances);
+		//create the graph sentence		
+		MyGraph graph = this.createDisambiguationGraph(input);
+				
 		if(Globals.saveGml){
 			graph.saveToGML(Globals.gmlPath + Globals.fileName + graph.getId() + ".gml");
 		}
@@ -111,6 +99,13 @@ public class MyExecutor {
 				this.printMapToFile(disambiguationMap, Globals.fileName, Globals.evaluation, false);
 				
 			} else {
+				// Write on file if something is weird (clusters with zero centrality)
+				if (Globals.graphVerbosity) {
+					if (graph.printUsefulInformation(Globals.graphsInfoPath + Globals.fileName + "_" + graph.getId() + "_" + graph.getSentenceId() + ".txt")) {
+						// If something has been written save GML too
+						graph.saveToGML(Globals.gmlPath + Globals.fileName + graph.getSentenceId() + ".gml");
+					}
+				}
 				// Run solver to disambiguate senses
 				if(graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+graph.getId())){
 					this.setTSPSolver(graph.getId());
@@ -124,7 +119,7 @@ public class MyExecutor {
 			}
 			
 		}
-		System.out.println("Graph finished: " + graph.getId());
+		System.out.println("Graph finished: " + graph.getId() + "_" + graph.getSentenceId());
 	}
 	
 	
@@ -367,25 +362,28 @@ public class MyExecutor {
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 			System.err.println(e);
 		}
-		
-		return sb.toString();
-		
+		return sb.toString();	
 	}
 	
 	/**
-	 * Create a graph having nodes that stores all the information in a PersonalVertex format and 
-	 * edges in the JGraphT weighted graph format where the weight is computed using tree kernels 
-	 * @param centrality 
-	 * @param pos_lemmaWordIndexParams: a map having POS as key and a list of word (with their lemma
-	 * index and evaluation params) having that POS as value
+	 * Given an array of words to disambiguate and their POS, create a graph representing
+	 * the sentence by: 
+	 * * create a node for every sense of every word (in WordNet)
+	 * * create edges between every couple of nodes and weigh them by syntactic similarity algorithm
+	 * * if necessary, create nodes and edges useful to get a better disambiguation
+	 * * compute centrality on nodes and distribute it on edges
+	 * @param instances
+	 * @return a graph representing the sentence
 	 */
-	private MyGraph createDisambiguationGraph(ArrayList<InputInstance> instances){
+	private MyGraph createDisambiguationGraph(InputSentence sentence){
 		MyGraph graph = null;
 		synchronized (graphLock) {
 			graph = new MyGraph();
 		}		
+		graph.setSentence(sentence.sentence);
+		graph.setSentenceId(sentence.sentenceId);
 		// for every instance, I have to find all senses
-		for (InputInstance instance : instances) {
+		for (InputInstance instance : sentence.instances) {
 			this.myCreateNodes(graph, instance);
 		}
 		this.myCreateEdges(graph);
@@ -409,7 +407,9 @@ public class MyExecutor {
 		for (MyVertex v : vertexes) {
 			for (MyEdge e : v.getEdges()) {
 				double mean = graph.computeMeanCentrality(v, e.getDest());
-				e.setWeight(mean);
+				if (mean == 0)
+					System.out.println("Graph " + graph.getSentenceId() + " with mean 0 on an edge");
+				e.setWeight(mean*e.getWeight());
 			}
 		}	
 	}
@@ -428,7 +428,7 @@ public class MyExecutor {
 				//doesn't create edges between vertexes representing the same word 
 				if( vertices.get(i).getSentenceIndex() != vertices.get(j).getSentenceIndex()){
 					// Do not create edges between distant words (Let's say 10 words distance)
-					if (Math.abs(vertices.get(i).getSentenceIndex() - vertices.get(j).getSentenceIndex()) < 10) {
+					//if (Math.abs(vertices.get(i).getSentenceIndex() - vertices.get(j).getSentenceIndex()) < 10) {
 						// Se due sensi disambiguano due sentence index diversi e hanno la stessa gloss key allora ha senso computare
 						if ( ! ( vertices.get(i).getGlossKey().equalsIgnoreCase(vertices.get(j).getGlossKey()))){
 
@@ -438,7 +438,7 @@ public class MyExecutor {
 							
 							graph.addEdge(vertices.get(i), vertices.get(j), edgeWeight);
 						}
-					}
+					//}
 				}
 			}
 		}
@@ -448,7 +448,6 @@ public class MyExecutor {
 
 	private void myCreateNodes(MyGraph graph, InputInstance input) {
 		//for all the WordNet glosses of that word and its lemma
-		// TODO: Optimize access to DB
 		for(IWord word : this.wordnet.getWordsList(input.lemma, input.pos)) {
 			String gloss = word.getSynset().getGloss().split("\"")[0];
 			//compute dependency trees for the gloss
@@ -640,7 +639,7 @@ public class MyExecutor {
 				if(line.equalsIgnoreCase("TOUR_SECTION")){
 					read = true;
 				}
-				if(line.equalsIgnoreCase("Length = ")){
+				if(line.contains("Length = ")){
 					// Check that length is positive, otherwise we have a problem
 					int length = Integer.parseInt(line.split(" ")[4]);
 					if (length <= 0) {
