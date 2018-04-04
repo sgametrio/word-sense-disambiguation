@@ -171,7 +171,38 @@ public class WordnetAdapter {
 			word = dict.getWord(senseKey);
 			return word;
 		}
+		/**
+		 * To retrieve semantic pointers, one uses the ISynset.getRelatedSynsets(IPointer) method,
+		 * and to retrieve lexical pointers, one should use the IWord.getRelatedWords(IPointer) method
+		 * @param word
+		 * @return
+		 */
+		public ArrayList<IWord> getAllRelatedWords(IWord word) {
+			// TODO: evaluate if has sense to introduce more specific pointers other than ALL
+			ArrayList<IWord> related = new ArrayList<IWord>();
+			// Add lexical-related words
+			for (IWordID id : word.getRelatedWords()) {
+				related.add(this.getWord(id));
+			}
+			// Add semantic-related words from other synsets
+			// Molto pesante fare la depth first su tantissime parole (non specificando il tipo di relazione)
+			for (ISynsetID synsetID : word.getSynset().getRelatedSynsets(/*Pointer.SIMILAR_TO*/)) {
+				for (IWord w : dict.getSynset(synsetID).getWords()) {
+					related.add(w);
+				}
+			}
+			// Add synonyms (semantic-related words) from same synset
+			for (IWord w : word.getSynset().getWords()) {
+				related.add(w);
+			}
+			return related;
+		}
 		
+		/**
+		 * Return IWord object from id
+		 * @param id
+		 * @return IWord
+		 */
 		public IWord getWord(IWordID id) {
 			IWord word = null;
 			word = dict.getWord(id);

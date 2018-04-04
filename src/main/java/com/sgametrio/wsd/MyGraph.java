@@ -88,7 +88,7 @@ public class MyGraph {
 		// Assuming path to file exists
 		String gml = "";
 		gml += "graph [\n"
-				+ "\tcomment \"" + getSentence().replaceAll("\"", "") + "\"\n"
+				+ "\tcomment \"" + getSentence().replaceAll("\"", "").replaceAll("\n", "") + "\"\n"
 				+ "\tlabel \"" + getSentenceId() + "\"\n";
 		// Add nodes, and then edges
 		for (MyVertex v : this.getNodes()) {

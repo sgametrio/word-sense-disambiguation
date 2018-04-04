@@ -17,7 +17,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.file.*;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,8 +30,10 @@ import org.jgrapht.alg.flow.PushRelabelMFImpl.VertexExtension;
 
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.Stack;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import edu.mit.jwi.item.IWord;
 import edu.mit.jwi.item.IWordID;
@@ -182,6 +186,10 @@ public class MyExecutor {
 				   MyVertex v = disambiguationMap.get(key);
 				   if(evaluation) { //evaluation mode output format
 						if(v.getSentenceTermId() != null){
+							System.out.println("Centrality " + v.getCentrality());
+							if (v.getCentrality() == 0) {
+								System.out.println("Disambiguated sense with centrality 0");
+							}
 							keyFileWriter.write(v.getSentenceTermId()+" "+v.getGlossKey()+"\n");
 						}
 					} else { //sentence wsd output format
@@ -386,16 +394,88 @@ public class MyExecutor {
 		for (InputInstance instance : sentence.instances) {
 			this.myCreateNodes(graph, instance);
 		}
-		this.myCreateEdges(graph);
-		
+		//this.myCreateEdges(graph);
+		this.createNodesByDFS(graph, Globals.nodesDepth);
 		if (Globals.centrality) {
-			// Add support nodes to compute better centrality
-			this.addSupportNodes(graph, Globals.nodesDepth);
+			// Add support nodes to compute different centrality
+			//this.addSupportNodes(graph, Globals.nodesDepth);
 			this.computeVertexCentrality(graph);
 			// Distribute centrality on edges
 			this.distributeCentralityOnEdges(graph);
-		}		
+		}
 		return graph;
+	}
+
+	/**
+	 * Add nodes and edges to the graph by DFSing WordNet graph 
+	 * @param graph
+	 * @param nodesDepth
+	 */
+	private void createNodesByDFS(MyGraph graph, int nodesDepth) {
+		ArrayList<MyVertex> nodes = graph.getNodes();
+		Map<IWord, MyVertex> wordMap = new ConcurrentHashMap<IWord, MyVertex>();
+		Map<IWord, MyVertex> originalWordMap = new ConcurrentHashMap<IWord, MyVertex>();
+		// Create a map to better lookup words
+		for (MyVertex node : nodes) {
+			if (!wordMap.containsKey(node.getWord())) {
+				wordMap.put(node.getWord(), node);
+				originalWordMap.put(node.getWord(), node);
+			}
+		}
+		
+		for (MyVertex node : originalWordMap.values()) {
+			Stack<IWord> path = new Stack<IWord>();
+			this.computeDFS(graph, nodesDepth, originalWordMap, wordMap, path, node, node.getWord());
+		}		
+	}
+
+	/**
+	 * Execute DFS on WordNet graph, adding edges and vertexes if find path from start to another node in the graph
+	 * @param graph
+	 * @param depth
+	 * @param wordMap
+	 * @param path
+	 * @param start
+	 */
+	private void computeDFS(MyGraph graph, int depth, Map<IWord, MyVertex> originalWordMap, Map<IWord, MyVertex> wordMap, Stack<IWord> path, MyVertex start, IWord current) {
+		if (depth == 0)
+			return;
+		for (IWord w : wordnet.getAllRelatedWords(current)) {
+			// Do not create edges between words that disambiguate the same sentence word (index)
+			// TODO: migliorare questo if
+			if (originalWordMap.containsKey(w)) {
+				MyVertex last = wordMap.get(w);
+				if (!current.equals(w) && last.getSentenceIndex() != start.getSentenceIndex()) {
+					//System.out.println(" graph " + graph.getSentenceId() + " Found path between " + start.getWord().toString() + " SI: " + start.getSentenceIndex() + " and " + last.getWord().toString() + " SI: " + last.getSentenceIndex());
+					MyVertex v = null;
+					//System.out.println("Intermediate nodes:");
+					for (IWord w1 : path) {
+						//System.out.println(w1.toString());
+						// Do not create again nodes representing a word already in the map
+						if (wordMap.containsKey(w1)) {
+							v = wordMap.get(w1);
+						} else {
+							v = new MyVertex(w1);
+							graph.addNode(v);
+							wordMap.put(w1, v);
+						}
+						// If the edge does not exist create one
+						if (graph.distance(v, last) == -1 && !v.equals(last)) {
+							graph.addEdge(v, last, depth);
+						}
+						last = v;
+					}
+					if (graph.distance(start, last) == -1 && !start.equals(last)) {
+						graph.addEdge(start, last, depth);
+					}
+				}	
+			} else {
+				path.push(w);
+				this.computeDFS(graph, depth-1, originalWordMap, wordMap, path, start, w);
+				path.pop();
+			}
+		}
+		
 	}
 
 	/**
@@ -409,7 +489,8 @@ public class MyExecutor {
 				double mean = graph.computeMeanCentrality(v, e.getDest());
 				if (mean == 0)
 					System.out.println("Graph " + graph.getSentenceId() + " with mean 0 on an edge");
-				e.setWeight(mean*e.getWeight());
+				else
+					e.setWeight(mean*e.getWeight());
 			}
 		}	
 	}
@@ -433,8 +514,7 @@ public class MyExecutor {
 						if ( ! ( vertices.get(i).getGlossKey().equalsIgnoreCase(vertices.get(j).getGlossKey()))){
 
 							// Compute similarity here
-							double edgeWeight = this.kelp.computeTreeSimilarity(vertices.get(i).getTreeGlossRepr(),
-									vertices.get(j).getTreeGlossRepr(), Globals.treeKernelType);
+							double edgeWeight = this.computeEdgeWeight(vertices.get(i), vertices.get(j));
 							
 							graph.addEdge(vertices.get(i), vertices.get(j), edgeWeight);
 						}
@@ -546,8 +626,7 @@ public class MyExecutor {
 			graph.addNode(temp);
 			// Collego tutti i vertici a quel nodo
 			for (MyVertex v : possibleVertexes) {
-				double weight = this.kelp.computeTreeSimilarity(temp.getTreeGlossRepr(),
-						v.getTreeGlossRepr(), Globals.treeKernelType);
+				double weight = this.computeEdgeWeight(v, temp);
 				graph.addEdge(v, temp, weight);
 			}
 		}
@@ -605,6 +684,16 @@ public class MyExecutor {
 			sum += pageRank(graph, target.getDest(), nVertici, alpha, step-1) / target.getDest().getOutDegree();
 		}
 		return pagerank + alpha * sum;
+	}
+	
+	public double computeEdgeWeight(MyVertex v1, MyVertex v2) {
+		if (v1.getTreeGlossRepr() != null && v2.getTreeGlossRepr() != null) {
+			return this.kelp.computeTreeSimilarity(v1.getTreeGlossRepr(), v2.getTreeGlossRepr(), Globals.treeKernelType);
+		} else {
+			System.out.println("Edge weight can't be computed");
+			return 0;
+		}
+		
 	}
 	
 	/**
