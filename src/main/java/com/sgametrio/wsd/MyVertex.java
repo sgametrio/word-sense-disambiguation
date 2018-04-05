@@ -177,4 +177,8 @@ public class MyVertex {
 	public int getOutDegree() {
 		return this.adjList.size();
 	}
+
+	public void setTreeRep(String treeRep) {
+		this.treeRep = treeRep;
+	}
 }

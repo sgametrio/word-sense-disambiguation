@@ -458,17 +458,23 @@ public class MyExecutor {
 							v = wordMap.get(w1);
 						} else {
 							v = new MyVertex(w1);
+							String gloss = w1.getSynset().getGloss().split("\"")[0];
+							//compute dependency trees for the gloss
+							ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(gloss);
+							v.setTreeRep(treeRepresentations.get(0).toString());
 							graph.addNode(v);
 							wordMap.put(w1, v);
 						}
 						// If the edge does not exist create one
 						if (graph.distance(v, last) == -1 && !v.equals(last)) {
-							graph.addEdge(v, last, (double)depth);
+//							graph.addEdge(v, last, (double)depth);
+							graph.addEdge(v, last, computeEdgeWeight(v, last));
 						}
 						last = v;
 					}
 					if (graph.distance(start, last) == -1 && !start.equals(last)) {
-						graph.addEdge(start, last, (double)depth);
+//						graph.addEdge(start, last, (double)depth);
+						graph.addEdge(start, last, computeEdgeWeight(start, last));
 					}
 				}	
 			} else {
