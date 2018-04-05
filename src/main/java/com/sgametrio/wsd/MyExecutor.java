@@ -394,7 +394,7 @@ public class MyExecutor {
 		for (InputInstance instance : sentence.instances) {
 			this.myCreateNodes(graph, instance);
 		}
-		//this.myCreateEdges(graph);
+		this.myCreateEdges(graph);
 		this.createNodesByDFS(graph, Globals.nodesDepth);
 		if (Globals.centrality) {
 			// Add support nodes to compute different centrality
@@ -461,12 +461,12 @@ public class MyExecutor {
 						}
 						// If the edge does not exist create one
 						if (graph.distance(v, last) == -1 && !v.equals(last)) {
-							graph.addEdge(v, last, depth);
+							graph.addEdge(v, last, depth/Globals.nodesDepth);
 						}
 						last = v;
 					}
 					if (graph.distance(start, last) == -1 && !start.equals(last)) {
-						graph.addEdge(start, last, depth);
+						graph.addEdge(start, last, depth/Globals.nodesDepth);
 					}
 				}	
 			} else {

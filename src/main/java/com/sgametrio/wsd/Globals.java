@@ -22,7 +22,7 @@ public class Globals {
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
-	public static final String currentDataset = MiniSenseval3;
+	public static final String currentDataset = All;
 	public static int nodesDepth = 3;
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
@@ -85,5 +85,4 @@ public class Globals {
 	// Use this if you want to evaluate a single sentence in a dataset
 	public static String sentenceId = "d000.s000";
 	
-
 }
