@@ -463,12 +463,12 @@ public class MyExecutor {
 						}
 						// If the edge does not exist create one
 						if (graph.distance(v, last) == -1 && !v.equals(last)) {
-							graph.addEdge(v, last, depth/Globals.nodesDepth);
+							graph.addEdge(v, last, (double)depth);
 						}
 						last = v;
 					}
 					if (graph.distance(start, last) == -1 && !start.equals(last)) {
-						graph.addEdge(start, last, depth/Globals.nodesDepth);
+						graph.addEdge(start, last, (double)depth);
 					}
 				}	
 			} else {
