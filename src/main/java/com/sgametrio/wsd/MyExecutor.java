@@ -186,7 +186,9 @@ public class MyExecutor {
 				   MyVertex v = disambiguationMap.get(key);
 				   if(evaluation) { //evaluation mode output format
 						if(v.getSentenceTermId() != null){
-							System.out.println("Centrality " + v.getCentrality());
+							if (Globals.verbose) {
+								System.out.println("Centrality " + v.getCentrality());
+							}
 							if (v.getCentrality() == 0) {
 								System.out.println("Disambiguated sense with centrality 0");
 							}

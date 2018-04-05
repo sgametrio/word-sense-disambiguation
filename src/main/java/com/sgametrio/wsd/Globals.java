@@ -73,7 +73,7 @@ public class Globals {
 	public static final String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
 
 	/*** Execution parameters ***/
-	public static boolean saveGml = true;
+	public static boolean saveGml = false;
 	public static boolean verbose = false;
 	public static boolean graphVerbosity = false;
 	// true if you want to use solver to disambiguate, false if you want to disambiguate by centrality
