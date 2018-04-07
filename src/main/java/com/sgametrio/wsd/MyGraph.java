@@ -125,6 +125,7 @@ public class MyGraph {
 			System.out.println("Graph has no vertexes, cannot save to GTSP format");
 			return false;
 		}
+		
 		double[][] matrix = this.getGraphMatrix();
 		int[][] invertedMatrix = this.invertMatrixAndConvertToInt(matrix);
 		ArrayList<ArrayList<Integer>> clusters = this.getNodesIndexByClusters();
@@ -144,6 +145,7 @@ public class MyGraph {
 		// Prints edge weights
 		for(int row = 0; row < size; row++){
 			for(int col = 0; col < size; col++){
+				//content += invertedMatrix[row][col]+" ";
 				content += invertedMatrix[row][col]+" ";
 			}
 			content += "\n";
@@ -228,12 +230,24 @@ public class MyGraph {
 		}
 		// Now invert value by using max value in the matrix
 		int max = this.getMaxValue(invertedMatrix);
+		int min = this.getMinValue(invertedMatrix);
 		for (int i = 0; i < size; i++) {
 			for (int j = 0; j < matrix[i].length; j++) {
-				invertedMatrix[i][j] = max - invertedMatrix[i][j] + 1;
+				invertedMatrix[i][j] = max - invertedMatrix[i][j] + min;
 			}
 		}
 		return invertedMatrix;
+	}
+
+	private int getMinValue(int[][] matrix) {
+		int min = Integer.MAX_VALUE;
+		for (int i = 0; i < matrix.length; i++) {
+			for (int j = 0; j < matrix[i].length; j++) {
+				if (min > matrix[i][j] && matrix[i][j] != -1)
+					min = matrix[i][j];
+			}
+		}
+		return min;
 	}
 
 	/**
@@ -242,7 +256,7 @@ public class MyGraph {
 	 * @return max value
 	 */
 	private int getMaxValue(int[][] matrix) {
-		int max = -1;
+		int max = Integer.MIN_VALUE;
 		for (int i = 0; i < matrix.length; i++) {
 			for (int j = 0; j < matrix[i].length; j++) {
 				if (max < matrix[i][j])
@@ -389,6 +403,82 @@ public class MyGraph {
 		}
 		return false;
 		
+	}
+	
+	/**
+	 * Compute KPP centrality (closeness centrality) on every nodes present in the graph.
+	 * KPP is computed as sum of the distance divided by nodes cardinality.
+	 * Edge weight here is node similarity (higher is more similar, so, the node, is more central).
+	 * So I do not reverse edge weight like the original formula says (because the original formula counts on node distance)
+	 * @param graph
+	 */
+	private void computeKppVertexCentrality() {
+		// Weight vertexes by kpp centrality
+		ArrayList<MyVertex> vertexes = this.getNodes();
+		int size = vertexes.size();
+		for (int i = 0; i < size; i++) {
+			double kppCentrality = 0;
+			double distance = 0;
+			for (int j = 0; j < size; j++) {
+				if (i != j) {
+					double distPath = this.distance(vertexes.get(i), vertexes.get(j));
+					// Check if path exists (or edge)
+					if (distPath > 0)
+						distance += distPath;
+				}
+			}
+			if (size > 1)
+				kppCentrality = distance / (size - 1);
+			vertexes.get(i).setCentrality(kppCentrality);			
+		}
+	}
+	
+	/**
+	 * Invert edge weight from values representing closeness to those representing distance
+	 * How can I find the opposite value?
+	 * newWeight = max + min - oldWeight
+	 */
+	public void invertEdgeWeight() {
+		double min = Integer.MAX_VALUE;
+		double max = Integer.MIN_VALUE;
+		ArrayList<MyVertex> nodes = getNodes();
+		if (nodes.size() == 0) {
+			return;
+		}
+		// Find max and min
+		for (MyVertex v : getNodes()) {
+			for (MyEdge e : v.getEdges()) {
+				double weight = e.getWeight();
+				if (min > weight) {
+					min = weight;
+				}
+				if (max < weight) {
+					max = weight;
+				}
+			}
+		}
+		// This means no edges
+		if (max == Integer.MIN_VALUE ||  min == Integer.MAX_VALUE) {
+			return;
+		}
+		// Replace value with new one
+		for (MyVertex v : getNodes()) {
+			for (MyEdge e : v.getEdges()) {
+				double oldWeight = e.getWeight();
+				double newWeight = max + min - oldWeight;
+				e.setWeight(newWeight);
+			}
+		}	
+	}
+	
+	public void convertEdgeWeightToInt() {
+		for (MyVertex v : getNodes()) {
+			for (MyEdge e : v.getEdges()) {
+				double oldWeight = e.getWeight();
+				long newWeight = Math.round(oldWeight * 100);
+				e.setWeight(newWeight);
+			}
+		}
 	}
 
 	public void setSentenceId(String sentenceId) {

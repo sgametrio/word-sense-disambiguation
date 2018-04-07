@@ -86,7 +86,7 @@ public class MyExecutor {
 		MyGraph graph = this.createDisambiguationGraph(input);
 				
 		if(Globals.saveGml){
-			graph.saveToGML(Globals.gmlPath + Globals.fileName + graph.getId() + ".gml");
+			graph.saveToGML(Globals.gmlPath + Globals.fileName + graph.getSentenceId() + ".gml");
 		}
 		// Use centrality to disambiguate senses in a word
 		if (!Globals.runSolver) {
