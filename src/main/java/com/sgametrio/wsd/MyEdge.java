@@ -27,9 +27,4 @@ public class MyEdge {
 	public int getId() {
 		return this.id;
 	}
-
-	public String toGML() {
-		String gml = "";
-		return gml;
-	}
 }

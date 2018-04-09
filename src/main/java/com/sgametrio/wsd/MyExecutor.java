@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.attribute.PosixFilePermission;
+import java.time.Duration;
 import java.time.Instant;
 import java.io.IOException;
 import java.io.InputStream;
@@ -78,6 +79,7 @@ public class MyExecutor {
 	 * the params of the word given in the evaluation framework
 	 */
 	public void performDisambiguation(InputSentence input){
+		Instant before = Instant.now();
 		ArrayList<InputInstance> selectedInstances = this.mySelectPos(input.instances);
 
 		input.instances.clear();
@@ -94,36 +96,29 @@ public class MyExecutor {
 		} else {
 			if (graph.getNodes().size() == 0) {
 				// Graph has no vertexes, nothing to disambiguate, continue;
-				System.out.println("Graph " + graph.getId() + " doesn't have words to disambiguate..");
+				graph.log(Globals.logInfo, "[NO WORDS] don't have words to disambiguate.");
 			} else if (graph.getNodesIndexByClusters().size() == 1) {
-				System.out.println("Graph " + graph.getId() + " has only 1 cluster, for now prints most common sense");
+				graph.log(Globals.logInfo, "[1 CLUSTER] has only 1 cluster, for now prints most common sense");
 				Map<Integer, MyVertex> disambiguationMap = new HashMap<Integer, MyVertex>();
 				MyVertex v = graph.getDisambiguationNodes().get(0);
 				disambiguationMap.put(v.getSentenceIndex(), v);
-				this.printMapToFile(disambiguationMap, Globals.fileName, Globals.evaluation, false);
-				
+				String log = this.printMapToFile(disambiguationMap, Globals.fileName, Globals.evaluation, false);
+				if (log.length() > 0)
+					graph.log(Globals.logWarning, log);
 			} else {
-				// Write on file if something is weird (clusters with zero centrality)
-				if (Globals.graphVerbosity) {
-					if (graph.printUsefulInformation(Globals.graphsInfoPath + Globals.fileName + "_" + graph.getId() + "_" + graph.getSentenceId() + ".txt")) {
-						// If something has been written save GML too
-						graph.saveToGML(Globals.gmlPath + Globals.fileName + graph.getSentenceId() + ".gml");
-					}
-				}
 				// Run solver to disambiguate senses
-				if(graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+graph.getId())){
-					this.setTSPSolver(graph.getId());
-					if(this.runSolver(graph.getId())){
-						this.generateOutputFile(graph);
-					}
-				} else {
-					System.err.println("graph " + graph.getId() + " saveToGTSP returned false");
-					graph.saveToGML(Globals.gmlPath + Globals.fileName+graph.getId() + ".gml");
+				graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+graph.getId());
+				this.setTSPSolver(graph.getId());
+				if(this.runSolver(graph.getId())){
+					this.generateOutputFile(graph);
 				}
 			}
 			
 		}
-		System.out.println("Graph finished: " + graph.getId() + "_" + graph.getSentenceId());
+		Instant after = Instant.now();
+		Duration time = Duration.between(before, after);
+		graph.log(Globals.logWarning, "[FINISHED] Time: " + time);
+		graph.logOnFile();
 	}
 	
 	
@@ -149,9 +144,9 @@ public class MyExecutor {
 			}
 		}
 		// Print results
-		this.printMapToFile(disambiguationMap, Globals.fileNameCentrality, Globals.evaluation, sentences);
+		String log = this.printMapToFile(disambiguationMap, Globals.fileNameCentrality, Globals.evaluation, sentences);
+		graph.log(Globals.logWarning, log);
 		// results in .key format
-
 	}
 
 
@@ -170,9 +165,10 @@ public class MyExecutor {
 		}
 	}
 
-	private void printMapToFile(Map<Integer, MyVertex> disambiguationMap, String fileName, boolean evaluation, boolean sentences) {
+	private String printMapToFile(Map<Integer, MyVertex> disambiguationMap, String fileName, boolean evaluation, boolean sentences) {
 		// print Map ordered by key
 		synchronized (fileLock) {
+			String log = "";
 			try {
 				PrintWriter keyFileWriter;
 				if (sentences) {
@@ -187,10 +183,10 @@ public class MyExecutor {
 				   if(evaluation) { //evaluation mode output format
 						if(v.getSentenceTermId() != null){
 							if (Globals.verbose) {
-								System.out.println("Centrality " + v.getCentrality());
+								log += "Centrality " + v.getCentrality() + "\n";
 							}
 							if (v.getCentrality() == 0) {
-								System.out.println("Disambiguated sense with centrality 0");
+								log += "[SENTENCE TERM " + v.getSentenceTermId() + "] Disambiguated with centrality 0\n";
 							}
 							keyFileWriter.write(v.getSentenceTermId()+" "+v.getGlossKey()+"\n");
 						}
@@ -202,6 +198,7 @@ public class MyExecutor {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+			return log;
 		}
 	}
 
@@ -251,7 +248,6 @@ public class MyExecutor {
 			//reads from the old file and write on the new one
 			String line;
 			while ((line = oldFileReader.readLine()) != null) {
-				//System.out.println(line);
 				if (line.contains("par=TMP")){
 					line = "par=TMP/" + id + ".pid$$.par";
 				}
@@ -317,7 +313,7 @@ public class MyExecutor {
 
 				System.err.print(errorStream);
 				//if verbose mode is on, prints tsp solver output and errors
-				if(Globals.verbose){
+				if(Globals.solverVerbosity){
 					System.out.println(output);
 					System.out.println("____________________________________");
 				}
@@ -396,7 +392,7 @@ public class MyExecutor {
 		for (InputInstance instance : sentence.instances) {
 			this.myCreateNodes(graph, instance);
 		}
-		this.myCreateEdges(graph);
+		//this.myCreateEdges(graph);
 		this.createNodesByDFS(graph, Globals.nodesDepth);
 		if (Globals.centrality) {
 			// Add support nodes to compute different centrality
@@ -495,9 +491,10 @@ public class MyExecutor {
 		for (MyVertex v : vertexes) {
 			for (MyEdge e : v.getEdges()) {
 				double mean = graph.computeMeanCentrality(v, e.getDest());
-				if (mean == 0)
-					System.out.println("Graph " + graph.getSentenceId() + " with mean 0 on an edge");
-				else
+				if (mean == 0) {
+					graph.log(Globals.logInfo, " mean 0 on an edge");
+					v.removeEdge(e);
+				} else
 					e.setWeight(mean*e.getWeight());
 			}
 		}	
@@ -543,7 +540,7 @@ public class MyExecutor {
 			if(treeRepresentations.size()>1){
 				//if the gloss is composed by multiple sentences, there could be more dependency tree
 				//in this case a message is given and only the first tree is considered
-				System.out.println("More than one tree representation for a gloss of \""+input.lemma+"\" ("+gloss+") computed. Took the first one.");
+				graph.log(Globals.logInfo, "More than one tree representation for a gloss of \""+input.lemma+"\" ("+gloss+") computed. Took the first one.");
 			}
 			MyVertex v = new MyVertex(input, word, treeRepresentations.get(0).toString(), gloss);
 			graph.addNode(v);
@@ -695,13 +692,13 @@ public class MyExecutor {
 	}
 	
 	public double computeEdgeWeight(MyVertex v1, MyVertex v2) {
-		if (v1.getTreeGlossRepr() != null && v2.getTreeGlossRepr() != null) {
+		return 1;
+		/*if (v1.getTreeGlossRepr() != null && v2.getTreeGlossRepr() != null) {
 			return this.kelp.computeTreeSimilarity(v1.getTreeGlossRepr(), v2.getTreeGlossRepr(), Globals.treeKernelType);
 		} else {
 			System.out.println("Edge weight can't be computed");
 			return 0;
-		}
-		
+		}*/
 	}
 	
 	/**
@@ -740,14 +737,14 @@ public class MyExecutor {
 					// Check that length is positive, otherwise we have a problem
 					int length = Integer.parseInt(line.split(" ")[4]);
 					if (length <= 0) {
-						System.out.println("[WARNING] Tour has a negative length of: " + length + " on sentence " + graph.getSentenceId());
+						graph.log(Globals.logWarning, "[WARNING] Tour has a negative length of: " + length);
 					}
 				}
 			}
 			
 			tourFileReader.close();
 			//open writer to write results
-			this.printMapToFile(disambiguationMap, Globals.fileName, true, false);
+			graph.log(Globals.logInfo, this.printMapToFile(disambiguationMap, Globals.fileName, true, false));
 			
 		} catch (FileNotFoundException e) {
 			//output file of tsp solver not created, the graph size wasn't >1

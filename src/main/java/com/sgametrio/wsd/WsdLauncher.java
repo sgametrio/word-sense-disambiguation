@@ -110,15 +110,6 @@ public class WsdLauncher {
 	}
 	
 	/**
-	 * Disambiguate a single sentence and create files to analyze it in-depth
-	 * @param centrality
-	 */
-	public void launchSingleSentence() {
-		MyExecutor exec = new MyExecutor();
-		
-	}
-	
-	/**
 	 * Execute Navigli's evaluation script
 	 * @param goldStandardPathToFile
 	 * @param resultsPathToFile
@@ -141,17 +132,14 @@ public class WsdLauncher {
 		File gtsp = new File(Globals.gtspPath);
 		File tour = new File(Globals.tourPath);
 		File results = new File(Globals.resultsPath);
-		File graphsInfo = new File(Globals.graphsInfoPath);
+		File logs = new File(Globals.logsPath);
 		File pi_files = new File(Globals.piFilesPath);
 		File log = new File("log.txt");
 		
-		if (graphsInfo.isDirectory()) {
-			for(File file: graphsInfo.listFiles()){
-				file.delete();
-			}
-		} else {
-			graphsInfo.mkdirs();
+		if (!logs.isDirectory()) {
+			logs.mkdirs();
 		}
+		
 		if (gml.isDirectory()) {
 			for(File gmlFile: gml.listFiles()){
 				gmlFile.delete();

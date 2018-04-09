@@ -22,8 +22,8 @@ public class Globals {
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
-	public static final String currentDataset = All;
-	public static int nodesDepth = 0;
+	public static final String currentDataset = MiniSenseval3;
+	public static int nodesDepth = 2;
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
 
@@ -45,10 +45,14 @@ public class Globals {
 	public static final String tspSolverPathFileName = tspSolverHomeDir + tspSolverFileName;
 	
 	public static final String gmlPath = "GML/";
-	public static final String graphsInfoPath = "graphs-extra/";
+	public static final String logsPath = "logs/" + new java.util.Date().toString() + "/";
 	public static final String gtspPath = tspSolverPathToGTSPLIB;
 	public static final String tourPath = tspSolverPathToGTOURS;
 	public static final String piFilesPath = tspSolverHomeDir + piFiles;
+	
+	public static final int logInfo = 0;
+	public static final int logWarning = 1;
+	public static final int logSevere = 2;
 	
 	public static final String fileNameCentrality = currentDataset + "_centrality";
 	public static final String fileName = currentDataset + "_subTrees";
@@ -73,16 +77,12 @@ public class Globals {
 	public static final String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
 
 	/*** Execution parameters ***/
-	public static boolean saveGml = false;
+	public static boolean saveGml = true;
 	public static boolean verbose = false;
-	public static boolean graphVerbosity = false;
+	public static boolean solverVerbosity = false;
 	// true if you want to use solver to disambiguate, false if you want to disambiguate by centrality
 	public static boolean runSolver = true;
 	public static boolean evaluation = true;
 	// true if you want to compute node centrality and distribute it on edges
-	public static boolean centrality = true;
-	
-	// Use this if you want to evaluate a single sentence in a dataset
-	public static String sentenceId = "d000.s000";
-	
+	public static boolean centrality = true;	
 }

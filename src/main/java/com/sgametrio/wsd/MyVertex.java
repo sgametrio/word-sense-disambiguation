@@ -130,6 +130,15 @@ public class MyVertex {
 		this.adjList.add(edge);
 	}
 	
+	public ArrayList<MyEdge> getPositiveEdges() {
+		ArrayList<MyEdge> edges = new ArrayList<MyEdge>();
+		for (MyEdge e : this.adjList) {
+			if (e.getWeight() != -1)
+				edges.add(e);
+		}
+		return edges;
+	}
+	
 	public ArrayList<MyEdge> getEdges() {
 		return this.adjList;
 	}
@@ -180,5 +189,9 @@ public class MyVertex {
 
 	public void setTreeRep(String treeRep) {
 		this.treeRep = treeRep;
+	}
+
+	public void removeEdge(MyEdge e) {
+		e.setWeight(-1);
 	}
 }

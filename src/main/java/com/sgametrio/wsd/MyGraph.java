@@ -21,6 +21,8 @@ public class MyGraph {
 
 	private ArrayList<MyVertex> vertexes;
 	private String sentenceId = "";
+	
+	private String log = "";
 
 	public MyGraph() {
 		id = progressiveId++;
@@ -233,7 +235,11 @@ public class MyGraph {
 		int min = this.getMinValue(invertedMatrix);
 		for (int i = 0; i < size; i++) {
 			for (int j = 0; j < matrix[i].length; j++) {
-				invertedMatrix[i][j] = max - invertedMatrix[i][j] + min;
+				if (invertedMatrix[i][j] == -1) {
+					invertedMatrix[i][j] = max + 2;
+				} else {
+					invertedMatrix[i][j] = max - invertedMatrix[i][j] + min;
+				}
 			}
 		}
 		return invertedMatrix;
@@ -358,51 +364,22 @@ public class MyGraph {
 	 * @param filePath
 	 * @return 
 	 */
-	public boolean printUsefulInformation(String filePath) {
-		String content = "";
+	public void printUsefulInformation(String filePath) {
 		Map<Integer, ArrayList<MyVertex>> nodes = this.getNodesByCluster();
 		for (Integer key : nodes.keySet()) {
 			ArrayList<MyVertex> clusterNodes = nodes.get(key);
 			boolean zeroCentrality = true;
-			double max = 0;
-			int id = -1;
 			for (MyVertex v : clusterNodes) {
 				double centrality = v.getCentrality();
 				if (centrality != 0.0) {
 					zeroCentrality = false;
-					if (centrality > max) {
-						id = v.getId();
-						max = centrality;
-					}
-				}
-				// Check if there are edges with weight == 0
-				for (MyEdge e : v.getEdges()) {
-					if (e.getWeight() < 0) {
-						content += "edge " + e.getId() +  " with weight " + e.getWeight() + "\n";
-					}
 				}
 			}
 			// Check clusters with no centralities
 			if (zeroCentrality) {
-				content += "Sentence " + this.getSentenceId() + " has cluster " + key + " with ZERO centrality\n";
+				this.log(Globals.logInfo, "[ZERO CENTRALITY CLUSTER] cluster " + key);
 			} 
 		}
-		// If there's something to write
-		if (content.length() != 0) {
-			System.out.println("Logging for graph " + this.getId());
-			PrintWriter file = null;
-			try {
-				file = new PrintWriter(new FileWriter(filePath, false));
-				file.write(content);
-				file.close();
-				return true;
-			} catch (IOException e) {
-				e.printStackTrace();
-				return false;
-			}
-		}
-		return false;
-		
 	}
 	
 	/**
@@ -487,5 +464,37 @@ public class MyGraph {
 	
 	public String getSentenceId() {
 		return this.sentenceId;
+	}
+	
+	/**
+	 * Adds log to local variable and choose different actions based on severity
+	 * @param severity
+	 * @param log
+	 */
+	public void log(int severity, String log) {
+		this.log += log + "\n";
+		if (severity >= Globals.logWarning) {
+			System.out.println("[GRAPH " + this.getSentenceId() + "]" + log);
+		} 
+		if (severity >= Globals.logSevere) {
+			System.out.println("Flush logs and exit...");
+			this.logOnFile();
+			System.exit(1);
+		}
+	}
+
+	/**
+	 * Logs log content to file
+	 */
+	public void logOnFile() {
+		if (this.log.length() > 0) {
+			try {
+				FileWriter logFile = new FileWriter(Globals.logsPath + this.getSentenceId() + ".log");
+				logFile.write(this.log);
+				logFile.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }
