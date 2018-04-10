@@ -82,6 +82,7 @@ public class Globals {
 	public static boolean solverVerbosity = false;
 	// true if you want to use solver to disambiguate, false if you want to disambiguate by centrality
 	public static boolean runSolver = true;
+	public static boolean developmentLogs = true;
 	public static boolean evaluation = true;
 	// true if you want to compute node centrality and distribute it on edges
 	public static boolean centrality = true;	

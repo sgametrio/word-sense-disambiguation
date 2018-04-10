@@ -2,14 +2,10 @@ package com.sgametrio.wsd;
 
 import java.io.BufferedWriter;
 import java.lang.Math;
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 
 import edu.mit.jwi.item.IWord;
@@ -87,32 +83,36 @@ public class MyGraph {
 	 * @param path
 	 */
 	public void saveToGML(String path) {
-		// Assuming path to file exists
-		String gml = "";
-		gml += "graph [\n"
-				+ "\tcomment \"" + getSentence().replaceAll("\"", "").replaceAll("\n", "") + "\"\n"
-				+ "\tlabel \"" + getSentenceId() + "\"\n";
-		// Add nodes, and then edges
-		for (MyVertex v : this.getNodes()) {
-			gml += v.toGML();
-		}
-		for (MyVertex v : this.getNodes()) {
-			for (MyEdge e : v.getEdges()) {
-				gml += "\tedge [\n"
-						+ "\t\tid " + e.getId() + "\n"
-						+ "\t\tsource " + v.getId() + "\n"
-						+ "\t\ttarget " + e.getDest().getId() + "\n"
-						+ "\t\tweight " + e.getWeight() + "\n"
-						+ "\t]\n";
+		if (Globals.developmentLogs) {
+			// Assuming path to file exists
+			String gml = "";
+			gml += "graph [\n"
+					+ "\tcomment \"" + getSentence().replaceAll("\"", "").replaceAll("\n", "") + "\"\n"
+					+ "\tlabel \"" + getSentenceId() + "\"\n";
+			// Add nodes, and then edges
+			for (MyVertex v : this.getNodes()) {
+				gml += v.toGML();
 			}
-		}
-		gml += "]\n";
-		try {
-			BufferedWriter file = new BufferedWriter(new FileWriter(path));
-			file.write(gml);
-			file.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+			for (MyVertex v : this.getNodes()) {
+				for (MyEdge e : v.getEdges()) {
+					if (e.getWeight() == -1)
+						continue;
+					gml += "\tedge [\n"
+							+ "\t\tid " + e.getId() + "\n"
+							+ "\t\tsource " + v.getId() + "\n"
+							+ "\t\ttarget " + e.getDest().getId() + "\n"
+							+ "\t\tweight " + e.getWeight() + "\n"
+							+ "\t]\n";
+				}
+			}
+			gml += "]\n";
+			try {
+				BufferedWriter file = new BufferedWriter(new FileWriter(path));
+				file.write(gml);
+				file.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -147,7 +147,6 @@ public class MyGraph {
 		// Prints edge weights
 		for(int row = 0; row < size; row++){
 			for(int col = 0; col < size; col++){
-				//content += invertedMatrix[row][col]+" ";
 				content += invertedMatrix[row][col]+" ";
 			}
 			content += "\n";
@@ -224,8 +223,8 @@ public class MyGraph {
 				if (matrix[i][j] == -1)
 					invertedMatrix[i][j] = -1;
 				else {
-					// Multiply by 100 to lose only a .01 of precision and not 1 using Math.round
-					double value = matrix[i][j]*100;
+					// Multiply by 1000 to lose only a .001 of precision and not 1 using Math.round
+					double value = matrix[i][j]*1000;
 					invertedMatrix[i][j] = (int)Math.round(value);
 				}
 			}
@@ -426,6 +425,8 @@ public class MyGraph {
 		for (MyVertex v : getNodes()) {
 			for (MyEdge e : v.getEdges()) {
 				double weight = e.getWeight();
+				if (weight == -1)
+					continue;
 				if (min > weight) {
 					min = weight;
 				}
@@ -472,14 +473,16 @@ public class MyGraph {
 	 * @param log
 	 */
 	public void log(int severity, String log) {
-		this.log += log + "\n";
-		if (severity >= Globals.logWarning) {
-			System.out.println("[GRAPH " + this.getSentenceId() + "]" + log);
-		} 
-		if (severity >= Globals.logSevere) {
-			System.out.println("Flush logs and exit...");
-			this.logOnFile();
-			System.exit(1);
+		if (Globals.developmentLogs) {
+			this.log += log + "\n";
+			if (severity >= Globals.logWarning) {
+				System.out.println("[GRAPH " + this.getSentenceId() + "]" + log);
+			} 
+			if (severity >= Globals.logSevere) {
+				System.out.println("Flush logs and exit...");
+				this.logOnFile();
+				System.exit(1);
+			}
 		}
 	}
 

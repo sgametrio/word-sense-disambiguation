@@ -139,6 +139,10 @@ public class MyVertex {
 		return edges;
 	}
 	
+	/**
+	 * Pay attention, this returns edges with weight -1!
+	 * @return
+	 */
 	public ArrayList<MyEdge> getEdges() {
 		return this.adjList;
 	}
@@ -153,7 +157,7 @@ public class MyVertex {
 
 	public MyEdge getEdge(MyVertex target) {
 		for (MyEdge e : this.adjList) {
-			if (target.equals(e.getDest()))
+			if (target.equals(e.getDest()) && e.getWeight() != -1)
 				return e;
 		}
 		return null;
