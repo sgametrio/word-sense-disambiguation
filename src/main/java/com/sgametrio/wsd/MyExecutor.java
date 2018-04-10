@@ -105,7 +105,7 @@ public class MyExecutor {
 				disambiguationMap.put(v.getSentenceIndex(), v);
 				String log = this.printMapToFile(disambiguationMap, Globals.fileName, Globals.evaluation, false);
 				if (log.length() > 0)
-					graph.log(Globals.logWarning, log);
+					graph.log(Globals.logInfo, log);
 			} else {
 				// Run solver to disambiguate senses
 				Instant beforeTSP = Instant.now();
@@ -150,7 +150,7 @@ public class MyExecutor {
 		}
 		// Print results
 		String log = this.printMapToFile(disambiguationMap, Globals.fileNameCentrality, Globals.evaluation, sentences);
-		graph.log(Globals.logWarning, log);
+		graph.log(Globals.logInfo, log);
 		// results in .key format
 	}
 
@@ -417,7 +417,11 @@ public class MyExecutor {
 		if(Globals.saveGml){
 			centralityGraph.saveToGML(Globals.gmlPath + Globals.fileName + graph.getSentenceId() + "_centrality.gml");
 		}
-		return graph;
+		if (Globals.runSolver) {
+			return graph;
+		} else {
+			return centralityGraph;
+		}
 	}
 
 	private void copyCentrality(ArrayList<MyVertex> from, ArrayList<MyVertex> to) {

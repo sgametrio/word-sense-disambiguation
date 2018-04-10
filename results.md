@@ -44,7 +44,7 @@
 #### mean instead of weight
 * All: 41.2
 
-#### kpp (no Dijsktra) centrality graph -> connected graph (commit: dad6bd0e07789786fc6)
+### kpp (no Dijsktra) centrality graph -> connected graph -> tsp (commit: dad6bd0e07789786fc6)
 ##### depth DFS = 2
 * All: 43.4
 
@@ -53,5 +53,16 @@
 
 ##### depth DFS = 4
 * All: 46.9 -> 3H19M
+* Mini: 41.0
 
-### pagerank centrality graph -> connected graph
+### pagerank centrality graph -> disambiguate by centrality
+##### depth DFS = 4
+* Mini: 46.2
+
+### pagerank centrality graph -> connected graph -> tsp
+##### depth DFS = 2
+*
+
+##### depth DFS = 4
+* Mini: 43.6
+

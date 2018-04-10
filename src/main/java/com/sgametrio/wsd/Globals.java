@@ -22,7 +22,7 @@ public class Globals {
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
-	public static final String currentDataset = MiniSenseval3;
+	public static final String currentDataset = All;
 	public static int nodesDepth = 4;
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
@@ -71,7 +71,7 @@ public class Globals {
 	public static final String kppBellmanFordCentrality = "bellman-ford";
 	
 	// Current centrality method
-	public static final String computeCentrality = kppCentrality;
+	public static final String computeCentrality = pageRankCentrality;
 	
 	// Current tree
 	public static final String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
@@ -79,12 +79,12 @@ public class Globals {
 	public static final float precision = 100000;
 
 	/*** Execution parameters ***/
-	public static boolean saveGml = true;
+	public static boolean saveGml = false;
 	public static boolean verbose = false;
 	public static boolean solverVerbosity = false;
 	// true if you want to use solver to disambiguate, false if you want to disambiguate by centrality
 	public static boolean runSolver = true;
-	public static boolean developmentLogs = true;
+	public static boolean developmentLogs = false;
 	public static boolean evaluation = true;
 	// true if you want to compute node centrality and distribute it on edges
 	public static boolean centrality = true;
