@@ -4,7 +4,7 @@
 * Senseval2: 66.8
 * All: 65.2
 
-### KPP centrality with support nodes (both synset and related synset) commit:a61a3671d58a4f
+### KPP centrality with auxiliary nodes (both synset and related synset) commit:a61a3671d58a4f
 ##### depth=0
 * Senseval2: 43.4
 * Senseval3: 38.6
@@ -44,3 +44,14 @@
 #### mean instead of weight
 * All: 41.2
 
+#### kpp (no Dijsktra) centrality graph -> connected graph (commit: dad6bd0e07789786fc6)
+##### depth DFS = 2
+* All: 43.4
+
+##### depth DFS = 3 
+* All: 46.2 -> 1H19M
+
+##### depth DFS = 4
+* All: 46.9 -> 3H19M
+
+### pagerank centrality graph -> connected graph

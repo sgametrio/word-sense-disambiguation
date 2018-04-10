@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.attribute.PosixFilePermission;
+import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.io.IOException;
@@ -107,9 +108,13 @@ public class MyExecutor {
 					graph.log(Globals.logWarning, log);
 			} else {
 				// Run solver to disambiguate senses
+				Instant beforeTSP = Instant.now();
 				graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+graph.getId());
 				this.setTSPSolver(graph.getId());
-				if(this.runSolver(graph.getId())){
+				if(this.runSolver(graph.getId())) {
+					Instant afterTSP = Instant.now();
+					Duration dTSP = Duration.between(beforeTSP, afterTSP);
+					graph.log(Globals.logInfo, "[TIME][TSP] " + dTSP.toString());
 					this.generateOutputFile(graph);
 				}
 			}
@@ -132,7 +137,7 @@ public class MyExecutor {
 			if (sentenceIndex < 0)
 				continue;
 			// KPP centrality for now
-			double vCentrality = v.getCentrality();
+			float vCentrality = v.getCentrality();
 			// per ogni sentence index devo scegliere uno e un solo nodo
 			// Se la map contiene un nodo, lo sostituisco solo se ha maggiore centralità
 			if (disambiguationMap.containsKey(sentenceIndex)) {
@@ -169,6 +174,7 @@ public class MyExecutor {
 		// print Map ordered by key
 		synchronized (fileLock) {
 			String log = "";
+			String fileContent = "";
 			try {
 				PrintWriter keyFileWriter;
 				if (sentences) {
@@ -183,12 +189,13 @@ public class MyExecutor {
 				   if(evaluation) { //evaluation mode output format
 						if(v.getSentenceTermId() != null){
 							log += "[SENTENCE TERM " + v.getSentenceTermId() + "] Disambiguated as [" + v.getGlossKey() + "] with centrality " + v.getCentrality() + "\n";
-							keyFileWriter.write(v.getSentenceTermId()+" "+v.getGlossKey()+"\n");
+							fileContent += v.getSentenceTermId()+" "+v.getGlossKey()+"\n";
 						}
 					} else { //sentence wsd output format
-						keyFileWriter.write("Disambiguated \""+v.getWord()+"\" as \n\t\t ("+v.getGlossKey()+") \""+this.wordnet.getGloss(v.getWord().getID())+"\"\n");
+						fileContent += "Disambiguated \""+v.getWord()+"\" as \n\t\t ("+v.getGlossKey()+") \""+this.wordnet.getGloss(v.getWord().getID())+"\"\n";
 					}
 				}
+				keyFileWriter.write(fileContent);
 				keyFileWriter.close();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -392,9 +399,17 @@ public class MyExecutor {
 			this.myCreateNodes(centralityGraph, instance);
 		}
 		this.myCreateEdges(graph);
+		Instant beforeDFS = Instant.now();
 		this.createNodesByDFS(centralityGraph, Globals.nodesDepth);
+		Instant afterDFS = Instant.now();
+		Duration dDFS = Duration.between(beforeDFS, afterDFS);
+		graph.log(Globals.logInfo, "[TIME][DFS] " + dDFS.toString());
 		if (Globals.centrality) {
+			Instant beforeC = Instant.now();
 			this.computeVertexCentrality(centralityGraph);
+			Instant afterC = Instant.now();
+			Duration dC = Duration.between(beforeC, afterC);
+			graph.log(Globals.logInfo, "[TIME][CENTRALITY] " + dC.toString());
 			// Distribute centrality on edges
 			this.copyCentrality(centralityGraph.getNodes(), graph.getNodes());
 			this.distributeCentralityOnEdges(graph);
@@ -496,18 +511,19 @@ public class MyExecutor {
 		ArrayList<MyVertex> vertexes = graph.getDisambiguationNodes();
 		for (MyVertex v : vertexes) {
 			for (MyEdge e : v.getEdges()) {
-				double mean = graph.computeMeanCentrality(v, e.getDest());
+				float mean = graph.computeMeanCentrality(v, e.getDest());
 				if (mean == 0) {
 					//graph.log(Globals.logInfo, " mean 0 on an edge");
 					v.removeEdge(e);
-				} else
+				} else {
 					e.setWeight(mean*e.getWeight());
+				}
 			}
 		}	
 	}
 
 	/**
-	 * Create an edge between every node in the graph and weigh this edge as the syntactic similarity
+	 * Create an edge between every node in the graph and weigh this edge
 	 * @param graph
 	 */
 	private void myCreateEdges(MyGraph graph) {
@@ -521,7 +537,7 @@ public class MyExecutor {
 				if( vertices.get(i).getSentenceIndex() != vertices.get(j).getSentenceIndex()){
 					if ( ! ( vertices.get(i).getGlossKey().equalsIgnoreCase(vertices.get(j).getGlossKey()))){
 						// Compute similarity here
-						double edgeWeight = this.computeEdgeWeight(vertices.get(i), vertices.get(j));
+						float edgeWeight = this.computeEdgeWeight(vertices.get(i), vertices.get(j));
 						graph.addEdge(vertices.get(i), vertices.get(j), edgeWeight);
 					}
 				}
@@ -548,114 +564,44 @@ public class MyExecutor {
 	}
 
 
-	private void computeVertexCentrality(MyGraph supportGraph) {
+	private void computeVertexCentrality(MyGraph graph) {
 		switch (Globals.computeCentrality) {
-			case Globals.allCentrality: 
-				this.computeKppVertexCentrality(supportGraph);
-				//this.computePageRankVertexCentrality(supportGraph, 0.5);
-				//this.computeInDegVertexCentrality(supportGraph);
+			case Globals.kppBellmanFordCentrality: 
+				this.computeKppBellmanFordCentrality(graph);
 				break;
 			case Globals.kppCentrality:
-				this.computeKppVertexCentrality(supportGraph);
+				this.computeKppSingleEdgeCentrality(graph);
 				break;
 			case Globals.pageRankCentrality:
-				//this.computePageRankVertexCentrality(supportGraph, 0.5);
+				this.computeIterativePageRankCentrality(graph);
 				break;
 			case Globals.inDegreeCentrality:
 				//this.computeInDegVertexCentrality(supportGraph);
 				break;
 			default:
-				this.computeKppVertexCentrality(supportGraph);
+				this.computeKppSingleEdgeCentrality(graph);
 				break;
 		}
 			
 	}
 
 	/**
-	 * For every vertex in the graph we search related senses in wordnet.
-	 * If we find common related senses between different vertexes with different sentence indexes,
-	 * we add this word to the graph so we can compute centrality based also on these support nodes
-	 * @param graph
-	 * @param depth
-	 */
-	private void addSupportNodes(MyGraph graph, int depth) {
-		if (depth == 0) return;
-		Map<IWord, ArrayList<MyVertex>> relatedWords = new HashMap<IWord, ArrayList<MyVertex>>();
-		ArrayList<MyVertex> vertexes = graph.getNodes();
-		for (MyVertex v : vertexes) {
-			// Prendo tutte le word dal synset, e dai synsets correlati
-			ArrayList<IWord> vRelatedWords = v.getRelatedWords();
-			// Avoid searching two times the same word
-			if (vRelatedWords == null) {
-				vRelatedWords = this.wordnet.getSynonymsAndRelatedWords(v.getWord().getID());
-				v.setRelatedWords(vRelatedWords);
-			}
-			
-			for (IWord word : vRelatedWords) {
-				// Se la parola esiste già nel mio grafo non devo aggiungerla
-				if (graph.containsWord(word))
-					continue;
-				
-				ArrayList<MyVertex> tempVertexes;
-				if (relatedWords.containsKey(word)) {
-					tempVertexes = relatedWords.get(word);
-				} else {
-					tempVertexes = new ArrayList<MyVertex>();
-				}
-				tempVertexes.add(v);
-				relatedWords.put(word, tempVertexes);
-			}
-		}
-		// Per ogni parola correlata ho tutti i vertici che l'hanno in comune
-		// Se ha almeno 2 vertici in comune allora controllo se esiste già nel mio grafo
-		// Se non esiste creo il vertice e computo la relazione fra tutti i vertici che ha
-		for (IWord w : relatedWords.keySet()) {
-			ArrayList<MyVertex> possibleVertexes = relatedWords.get(w);
-			// Se una parola è collegata ad almeno due sensi che disambiguano due parole diverse allora
-			ArrayList<Integer> differentIndexes = new ArrayList<Integer>();
-			for (MyVertex vv : possibleVertexes) {
-				if (!differentIndexes.contains(vv.getSentenceIndex())) {
-					differentIndexes.add(vv.getSentenceIndex());
-				}
-			}
-			if (differentIndexes.size() < 2) {
-				continue;
-			}
-			String gloss = w.getSynset().getGloss().split("\"")[0];
-			
-			//compute dependency trees for the gloss
-			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(gloss);
-			// Più di un vertice correlato, creo il nodo e gli collego i vertici
-		
-			MyVertex temp = new MyVertex(w, treeRepresentations.get(0).toString());
-			graph.addNode(temp);
-			// Collego tutti i vertici a quel nodo
-			for (MyVertex v : possibleVertexes) {
-				double weight = this.computeEdgeWeight(v, temp);
-				graph.addEdge(v, temp, weight);
-			}
-		}
-		this.addSupportNodes(graph, depth-1);
-	}
-	
-	/**
 	 * Compute KPP centrality on every nodes present in the graph.
 	 * KPP is computed as sum of the distance divided by nodes cardinality.
-	 * WARNING: computing shortest path between two nodes is expensive, let's give it a try
 	 * @param graph
 	 */
-	private void computeKppVertexCentrality(MyGraph graph) {
+	private void computeKppSingleEdgeCentrality(MyGraph graph) {
 		// Weight vertexes by kpp centrality
 		ArrayList<MyVertex> vertexes = graph.getNodes();
 		int size = vertexes.size();
 		for (int i = 0; i < size; i++) {
-			double kppCentrality = 0, distance = 0;
+			float kppCentrality = 0, distance = 0;
 			for (int j = 0; j < size; j++) {
 				if (i != j) {
-					// TODO: distance instead of single edge weight
-					double distPath = graph.distance(vertexes.get(i), vertexes.get(j));
+					// TODO: distance (Dijkstra) instead of single edge weight
+					float distPath = graph.distance(vertexes.get(i), vertexes.get(j));
 					if (distPath > 0)
-						distance += (double) 1 / distPath;
+						distance += (float) 1 / distPath;
 				}
 			}
 			if (size > 1)
@@ -664,24 +610,86 @@ public class MyExecutor {
 		}
 	}
 	
+	private void computeKppBellmanFordCentrality(MyGraph graph) {
+		// Weight vertexes by kpp centrality (BellmanFord distance)
+		ArrayList<MyVertex> vertexes = graph.getDisambiguationNodes();
+		int size = vertexes.size();
+		for (MyVertex node : vertexes) {
+			float kppCentrality = 0;
+			Map<MyVertex, Float> paths = graph.BellmanFord(node);
+			for (MyVertex dest : paths.keySet()) {
+				float distance = paths.get(dest);
+				// avoid self and cluster nodes
+				if (distance > 0.0 && distance != (float)Integer.MAX_VALUE) {
+					//graph.log(Globals.logWarning, "[BF] " + node.getId() + "-" + dest.getId() + " = " + distance);
+					kppCentrality += (float) 1 / distance;
+				}
+			}
+			// Do normalization
+			if (size > 1)
+				kppCentrality = kppCentrality / (size - 1);
+			node.setCentrality(kppCentrality);			
+		}
+	}
+	
+	/**
+	 * Compute page rank on graph nodes iteratively:
+	 * PR(i, t+1) = sum_(i,j)inE_(PR(j, t)/OutDegree(j)
+	 * @param graph
+	 */
+	private void computeIterativePageRankCentrality(MyGraph graph) {
+		ArrayList<MyVertex> nodes = graph.getNodes();
+		// random-surfer: close to 0 -> more random, close to 1 -> less
+		float alpha = Globals.dampingFactor;
+		int size = nodes.size();
+		// Set initial page rank centrality
+		for (MyVertex node : nodes) {
+			node.setCentrality((float) 1 / size);
+		}
+		// Compute now iteratively until convergence
+		boolean convergence = false;
+		while (convergence == false) {
+			convergence = true;
+			for (MyVertex node : nodes) {
+				float oldPageRank = node.getCentrality();
+				float sum = 0, pagerank = 0;
+				for (MyEdge e : node.getEdges()) {
+					// Avoid ghost edges
+					if (e.getWeight() == -1)
+						continue;
+					sum += e.getDest().getCentrality() / e.getDest().getOutDegree();
+					// random-surfer adjustment
+					sum *= alpha;
+					sum += (1-alpha)/size;
+				}
+				node.setCentrality(sum);
+				pagerank = node.getCentrality();
+				if (pagerank != oldPageRank) {
+					convergence = false;
+					//System.out.println(oldPageRank + " -> " + pagerank);
+				}
+			}
+		}
+	}
+
 	// TODO: sistemare bene fino a convergenza
-	private void computePageRankVertexCentrality(MyGraph graph, double alpha) {
+	private void computePageRankVertexCentrality(MyGraph graph, float alpha) {
 		// Weight vertexes by page rank centrality
 		ArrayList<MyVertex> vertices = graph.getNodes();
 		int nVertici = vertices.size();
 		for (int i = 0; i < nVertici; i++) {
-			double pageRankCentrality = pageRank(graph, vertices.get(i), nVertici, alpha, 5);
+			float pageRankCentrality = pageRank(graph, vertices.get(i), nVertici, alpha, 5);
 			vertices.get(i).setCentrality(pageRankCentrality);
 		}
 	}
 	
-	private double pageRank(MyGraph graph, MyVertex v, int nVertici, double alpha, int step) {
+	private float pageRank(MyGraph graph, MyVertex v, int nVertici, float alpha, int step) {
 		if (step == 0)
 			return 1 / nVertici;
 		
-		double pagerank = 0;
+		float pagerank = 0;
 		pagerank = (1 - alpha)/nVertici;
-		double sum = 0;
+		float sum = 0;
 		for (MyEdge target : v.getEdges()) {
 			sum += pageRank(graph, target.getDest(), nVertici, alpha, step-1) / target.getDest().getOutDegree();
 		}
@@ -694,7 +702,7 @@ public class MyExecutor {
 	 * @param v2
 	 * @return
 	 */
-	public double computeEdgeWeight(MyVertex v1, MyVertex v2) {
+	public float computeEdgeWeight(MyVertex v1, MyVertex v2) {
 		return 1;
 		/*if (v1.getTreeGlossRepr() != null && v2.getTreeGlossRepr() != null) {
 			return this.kelp.computeTreeSimilarity(v1.getTreeGlossRepr(), v2.getTreeGlossRepr(), Globals.treeKernelType);

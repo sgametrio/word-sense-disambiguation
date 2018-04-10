@@ -23,7 +23,7 @@ public class Globals {
 	 *  Change this if you want to change current evaluation dataset
 	 */
 	public static final String currentDataset = MiniSenseval3;
-	public static int nodesDepth = 2;
+	public static int nodesDepth = 4;
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
 
@@ -53,6 +53,7 @@ public class Globals {
 	public static final int logInfo = 0;
 	public static final int logWarning = 1;
 	public static final int logSevere = 2;
+	public static final int logStatistics = 3;
 	
 	public static final String fileNameCentrality = currentDataset + "_centrality";
 	public static final String fileName = currentDataset + "_subTrees";
@@ -67,14 +68,15 @@ public class Globals {
 	public static final String pageRankCentrality = "page-rank";
 	public static final String kppCentrality = "kpp";
 	public static final String allCentrality = "all";
+	public static final String kppBellmanFordCentrality = "bellman-ford";
 	
 	// Current centrality method
 	public static final String computeCentrality = kppCentrality;
 	
-	public static final String disambiguationCentrality = kppCentrality;
-	
 	// Current tree
 	public static final String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
+
+	public static final float precision = 100000;
 
 	/*** Execution parameters ***/
 	public static boolean saveGml = true;
@@ -85,5 +87,7 @@ public class Globals {
 	public static boolean developmentLogs = true;
 	public static boolean evaluation = true;
 	// true if you want to compute node centrality and distribute it on edges
-	public static boolean centrality = true;	
+	public static boolean centrality = true;
+
+	public static float dampingFactor = (float)1;	
 }

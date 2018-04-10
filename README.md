@@ -3,9 +3,7 @@
 Use vertex centrality measures combined with syntactic similarity computed distances between them to disambiguate senses of a word.
 
 ## Problems
-* Some sentences (see senseval3.d000.s081 for example) does not disambiguate
-
-		No instance to disambiguate
+When there are multiple optimal path don't know which one is chosen, maybe we can tell him which node it has to take (lower id -> more common sense)
 
 ## Thoughts
 * Seems that adding both synset and related synsets' (all possible relationships) words is better

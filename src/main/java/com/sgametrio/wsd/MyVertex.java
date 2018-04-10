@@ -18,7 +18,7 @@ public class MyVertex {
 	/** Tree repr */
 	private String treeRep;
 	
-	private double centrality = 0;
+	private float centrality = 0;
 	private ArrayList<IWord> relatedWords;
 	
 	/**
@@ -117,15 +117,16 @@ public class MyVertex {
 		return sentenceIndex;
 	}
 
-	public double getCentrality() {
+	public float getCentrality() {
 		return centrality;
 	}
 
-	public void setCentrality(double centrality) {
-		this.centrality = centrality;
+	public void setCentrality(float centrality) {
+		// Round up to 5 decimals
+		this.centrality = (float) Math.round(centrality * Globals.precision) / Globals.precision;
 	}
 
-	public void addEdge(MyVertex target, double weight) {
+	public void addEdge(MyVertex target, float weight) {
 		MyEdge edge = new MyEdge(target, weight);
 		this.adjList.add(edge);
 	}
@@ -188,7 +189,12 @@ public class MyVertex {
 	}
 
 	public int getOutDegree() {
-		return this.adjList.size();
+		int out = 0;
+		for (MyEdge e : this.adjList) {
+			if (e.getWeight() != -1)
+				out++;
+		}
+		return out;
 	}
 
 	public void setTreeRep(String treeRep) {

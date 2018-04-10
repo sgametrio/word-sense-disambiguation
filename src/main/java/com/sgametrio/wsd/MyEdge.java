@@ -3,16 +3,16 @@ package com.sgametrio.wsd;
 public class MyEdge {
 	private static int progressiveId = 0;
 	private int id;
-	private double weight;
+	private float weight;
 	private MyVertex target;
 	
-	public MyEdge(MyVertex target, double weight) {
+	public MyEdge(MyVertex target, float weight) {
 		this.id = progressiveId++;
 		this.target = target;
 		this.weight = weight;
 	}
 	
-	public double getWeight() {
+	public float getWeight() {
 		return this.weight;
 	}
 	
@@ -20,7 +20,7 @@ public class MyEdge {
 		return this.target;
 	}
 	
-	public void setWeight(double weight) {
+	public void setWeight(float weight) {
 		this.weight = weight;
 	}
 	

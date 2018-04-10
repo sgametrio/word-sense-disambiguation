@@ -54,7 +54,7 @@ public class MyGraph {
 		vertexes.add(v);
 	}
 	
-	public void addEdge(MyVertex source, MyVertex target, double weight) {
+	public void addEdge(MyVertex source, MyVertex target, float weight) {
 		int indexS = vertexes.indexOf(source);
 		int indexT = vertexes.indexOf(target);
 		// If edge weight is ZERO or less, doesn't create the edge
@@ -65,13 +65,45 @@ public class MyGraph {
 		}
 	}
 
+	public Map<MyVertex, Float> BellmanFord(MyVertex src) {
+		Map<MyVertex, Float> shortestPaths = new HashMap<MyVertex, Float>();
+		ArrayList<MyVertex> nodes = this.getNodes();
+		// Step 1: Initialize distances from src to all other
+        // vertices as INFINITE
+		for (MyVertex v : nodes) {
+			shortestPaths.put(v, (float)Integer.MAX_VALUE);
+		}
+		shortestPaths.replace(src, (float)0);
+ 
+        // Step 2: Relax all edges |V| - 1 times. A simple
+        // shortest path from src to any other vertex can
+        // have at-most |V| - 1 edges
+		for (int i = 1; i < nodes.size(); i++) {
+			for (MyVertex v : nodes) {
+				for (MyEdge e : v.getEdges()) {
+					// Avoid finding same cluster nodes
+					if (e.getDest().getSentenceIndex() != -1 && e.getDest().getSentenceIndex() == src.getSentenceIndex())
+						continue;
+					float weight = e.getWeight();
+					float distSrc = shortestPaths.get(v);
+					float distDest = shortestPaths.get(e.getDest());
+					
+					if (distSrc != (float)Integer.MAX_VALUE && distSrc+weight < distDest) {
+						shortestPaths.replace(e.getDest(), distSrc+weight);
+					}
+				}
+			}
+		}
+        return shortestPaths;
+    }
+	
 	/**
 	 * compute vertexes distance
 	 * @param source
 	 * @param target
 	 * @return edge weight, -1 if it doesn't exist
 	 */
-	public double distance(MyVertex source, MyVertex target) {
+	public float distance(MyVertex source, MyVertex target) {
 		MyEdge edge = source.getEdge(target);
 		if (edge != null)
 			return edge.getWeight();
@@ -128,7 +160,7 @@ public class MyGraph {
 			return false;
 		}
 		
-		double[][] matrix = this.getGraphMatrix();
+		float[][] matrix = this.getGraphMatrix();
 		int[][] invertedMatrix = this.invertMatrixAndConvertToInt(matrix);
 		ArrayList<ArrayList<Integer>> clusters = this.getNodesIndexByClusters();
 		if (clusters.size() == 1) {
@@ -210,11 +242,11 @@ public class MyGraph {
 	}
 
 	/**
-	 * Return matrix of unsigned integer, inverted and converted from double without losing too much precision
+	 * Return matrix of unsigned integer, inverted and converted from float without losing too much precision
 	 * @param matrix
 	 * @return
 	 */
-	private int[][] invertMatrixAndConvertToInt(double[][] matrix) {
+	private int[][] invertMatrixAndConvertToInt(float[][] matrix) {
 		int size = matrix.length;
 		int[][] invertedMatrix = new int [size][size];
 		
@@ -223,8 +255,8 @@ public class MyGraph {
 				if (matrix[i][j] == -1)
 					invertedMatrix[i][j] = -1;
 				else {
-					// Multiply by 1000 to lose only a .001 of precision and not 1 using Math.round
-					double value = matrix[i][j]*1000;
+					// Multiply by 100000 to lose only a .00001 of precision and not 1 using Math.round
+					float value = matrix[i][j]*Globals.precision;
 					invertedMatrix[i][j] = (int)Math.round(value);
 				}
 			}
@@ -276,12 +308,12 @@ public class MyGraph {
 	 * @return a matrix which has in position ij the weight of the edge between node i and node j if exists,
 	 * -1 otherwise, return null if graph has no nodes
 	 */
-	public double[][] getGraphMatrix() {
+	public float[][] getGraphMatrix() {
 		ArrayList<MyVertex> nodes = this.getDisambiguationNodes();
 		int size = nodes.size();
 		if (size == 0)
 			return null;
-		double[][] matrix = new double[size][size];
+		float[][] matrix = new float[size][size];
 		// Initialize matrix by setting all edges to non-existents
 		for (int i = 0; i < size; i++) 
 			for (int j = 0; j < size; j++)
@@ -319,7 +351,7 @@ public class MyGraph {
 		this.sentence = sentence;
 	}
 	
-	public double computeMeanCentrality(MyVertex v1, MyVertex v2) {
+	public float computeMeanCentrality(MyVertex v1, MyVertex v2) {
 		return (v1.getCentrality()+v2.getCentrality())/2;
 	}
 
@@ -369,7 +401,7 @@ public class MyGraph {
 			ArrayList<MyVertex> clusterNodes = nodes.get(key);
 			boolean zeroCentrality = true;
 			for (MyVertex v : clusterNodes) {
-				double centrality = v.getCentrality();
+				float centrality = v.getCentrality();
 				if (centrality != 0.0) {
 					zeroCentrality = false;
 				}
@@ -393,11 +425,11 @@ public class MyGraph {
 		ArrayList<MyVertex> vertexes = this.getNodes();
 		int size = vertexes.size();
 		for (int i = 0; i < size; i++) {
-			double kppCentrality = 0;
-			double distance = 0;
+			float kppCentrality = 0;
+			float distance = 0;
 			for (int j = 0; j < size; j++) {
 				if (i != j) {
-					double distPath = this.distance(vertexes.get(i), vertexes.get(j));
+					float distPath = this.distance(vertexes.get(i), vertexes.get(j));
 					// Check if path exists (or edge)
 					if (distPath > 0)
 						distance += distPath;
@@ -415,8 +447,8 @@ public class MyGraph {
 	 * newWeight = max + min - oldWeight
 	 */
 	public void invertEdgeWeight() {
-		double min = Integer.MAX_VALUE;
-		double max = Integer.MIN_VALUE;
+		float min = Integer.MAX_VALUE;
+		float max = Integer.MIN_VALUE;
 		ArrayList<MyVertex> nodes = getNodes();
 		if (nodes.size() == 0) {
 			return;
@@ -424,7 +456,7 @@ public class MyGraph {
 		// Find max and min
 		for (MyVertex v : getNodes()) {
 			for (MyEdge e : v.getEdges()) {
-				double weight = e.getWeight();
+				float weight = e.getWeight();
 				if (weight == -1)
 					continue;
 				if (min > weight) {
@@ -442,8 +474,8 @@ public class MyGraph {
 		// Replace value with new one
 		for (MyVertex v : getNodes()) {
 			for (MyEdge e : v.getEdges()) {
-				double oldWeight = e.getWeight();
-				double newWeight = max + min - oldWeight;
+				float oldWeight = e.getWeight();
+				float newWeight = max + min - oldWeight;
 				e.setWeight(newWeight);
 			}
 		}	
@@ -452,7 +484,7 @@ public class MyGraph {
 	public void convertEdgeWeightToInt() {
 		for (MyVertex v : getNodes()) {
 			for (MyEdge e : v.getEdges()) {
-				double oldWeight = e.getWeight();
+				float oldWeight = e.getWeight();
 				long newWeight = Math.round(oldWeight * 100);
 				e.setWeight(newWeight);
 			}
