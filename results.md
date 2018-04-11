@@ -61,8 +61,9 @@
 
 ### pagerank centrality graph -> connected graph -> tsp
 ##### depth DFS = 2
-*
+* All: 43.3
 
 ##### depth DFS = 4
 * Mini: 43.6
+* All: 47.5 -> 3H16M
 

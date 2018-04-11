@@ -21,7 +21,7 @@ public class ExtendedScorer extends Scorer {
 		File evaluation = new File(evaluationFile);
 		if (!evaluation.exists()) 
 			exit("Evaluation file not found at " + evaluationFile);
-		File statistics = new File(Globals.resultsPath + "statistics.json");
+		new File(Globals.resultsPath + "statistics.json");
 		
 		Map<String, Map<String, Set<String>>> goldMap = readFileToMap(gold);
 		Map<String, Map<String, Set<String>>> evalMap = readFileToMap(evaluation);

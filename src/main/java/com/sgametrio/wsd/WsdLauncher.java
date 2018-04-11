@@ -18,7 +18,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import evaluation.InputExtractor;
-import evaluation.InputInstance;
 import evaluation.InputSentence;
 import evaluation.Scorer;
 
@@ -26,16 +25,6 @@ public class WsdLauncher {
 	
 	//settings, used to make code clearer, use params in WsdExecutor for development
 	public static void main(String a[]){
-		//sentence to be disambiguated
-		String[] sentences = {
-//				"Eat what you can, and, I'll have the rest.",
-//				"Dan speaks three languages, is good a DIY, and he can cook.",
-//				"He made such a terrible face that the children ran away.",
-////				ambiguous sentences
-				"I saw him sawing wood with a saw", //saw
-//				"I took out my contact lenses and put on my glasses.", //glass
-//				"The water, spilled over the tops of these, \"river\" banks during the last flood." //river
-		};
 		//launchDisambiguationEvaluationWsd(false, Globals.saveGml, false, Globals.runSolver, false);
 		launchDisambiguationEvaluation();
 		//launchEvaluator(Globals.currentGoldFile, "RESULTS/centrality_wsdResults.KEY");

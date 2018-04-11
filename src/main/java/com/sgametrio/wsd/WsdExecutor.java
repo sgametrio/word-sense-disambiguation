@@ -29,7 +29,6 @@ import java.util.TreeSet;
 
 import edu.mit.jwi.item.IWord;
 import edu.mit.jwi.item.IWordID;
-import edu.mit.jwi.item.Pointer;
 import edu.stanford.nlp.trees.Tree;
 
 import com.sgametrio.wsd.KelpAdapter;
@@ -44,18 +43,13 @@ public class WsdExecutor {
 	//saving params
 	private  int progrSaveName = 1;
 	private String fileNameSentences = "sentences";
-	private  int progrSaveNameCentrality = 1;
-	
 	//execution params
 	private String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
 	private boolean saveExamples = false;
 	private boolean saveGml = false;
 	private boolean runSolver = false;
 	private boolean evaluation = false;
-	private boolean centrality = false;
 	public boolean verbose = false;
-	
-	private int trial = 1;
 	
 	//CONSTRUCTOR
 	public WsdExecutor(){	
@@ -188,7 +182,6 @@ public class WsdExecutor {
 				}
 			}
 			keyFileWriter.close();
-			this.progrSaveNameCentrality++;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -318,20 +311,6 @@ public class WsdExecutor {
 					System.out.println("____________________________________");
 				}
 				
-				//if the error is a segmentation fault error, it can be solved running again the script
-				//it tries again for a max of 100 times
-				/*if(errorStream.contains("Segmentation fault")){
-					if(this.trial<=100){
-						System.out.println("Retrying computation. Trial #"+this.trial);
-						this.trial++;
-						runSolver();
-					}					
-				}else if((errorStream.contains("not greater than"))||errorStream.contains("dimension < 3")){
-					System.out.println("The graph does not have enough node to run tsp-solver.");
-					return false;
-				}*/
-				this.trial = 1;				
-				
 				return true;
 				
 			}catch (IOException e) {
@@ -426,7 +405,6 @@ public class WsdExecutor {
 		this.createEdges(graph);
 			// check if we can compute distances on support nodes
 		if (centrality) {
-			int depth = 0;
 			//this.createEdges(supportGraph);
 			//this.addSupportNodes(graph, depth);
 			this.computeVertexCentrality(graph);
@@ -441,7 +419,7 @@ public class WsdExecutor {
 	}
 
 	private void distributeCentralityOnEdges(WsdGraph graph) {
-		ArrayList<WsdVertex> vertexes = graph.getVerticesList();
+		graph.getVerticesList();
 		for (HashMap<String, String> edge : graph.getEdgesList()) {
 			double mean = graph.computeMeanCentrality(Integer.parseInt(edge.get("source")), Integer.parseInt(edge.get("target")));
 			graph.setEdgeWeight(Integer.parseInt(edge.get("id")), mean*Float.parseFloat(edge.get("weight")));

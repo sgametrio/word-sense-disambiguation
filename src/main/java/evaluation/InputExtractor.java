@@ -64,7 +64,6 @@ public class InputExtractor {
 			NodeList children = s.getChildNodes();
 			sentence.instances = new ArrayList<InputInstance>();
 			sentence.sentence = xmlSentence.getTextContent();
-			int numberOfInstances = 0;
 			for(int i = 0; i<children.getLength(); i++){
 				Node child = children.item(i);
 				if(child.getNodeType()== Node.ELEMENT_NODE){
@@ -75,8 +74,6 @@ public class InputExtractor {
 					//if the word has to be disambiguated and evaluated it will have params
 					if(elementChild.getTagName().equalsIgnoreCase("instance")){
 						params = elementChild.getAttribute("id");
-						numberOfInstances++;
-					//if the word only has to be disambiguated it won't have params
 					}else if(elementChild.getTagName().equalsIgnoreCase("wf")){
 						params = null;
 					}

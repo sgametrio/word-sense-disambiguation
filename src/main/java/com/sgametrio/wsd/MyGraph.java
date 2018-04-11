@@ -267,7 +267,8 @@ public class MyGraph {
 		for (int i = 0; i < size; i++) {
 			for (int j = 0; j < matrix[i].length; j++) {
 				if (invertedMatrix[i][j] == -1) {
-					invertedMatrix[i][j] = max + 2;
+					// Add penalty to non-existent edges
+					invertedMatrix[i][j] = Math.abs(max*10) + 2;
 				} else {
 					invertedMatrix[i][j] = max - invertedMatrix[i][j] + min;
 				}

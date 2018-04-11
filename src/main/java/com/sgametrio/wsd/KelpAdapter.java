@@ -4,9 +4,6 @@
 
 package com.sgametrio.wsd;
 
-import java.time.Duration;
-import java.time.Instant;
-
 import it.uniroma2.sag.kelp.data.representation.structure.similarity.StructureElementSimilarityI;
 import it.uniroma2.sag.kelp.data.representation.tree.TreeRepresentation;
 import it.uniroma2.sag.kelp.input.parser.DependencyParser;

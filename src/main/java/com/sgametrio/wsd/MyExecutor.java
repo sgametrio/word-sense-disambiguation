@@ -11,7 +11,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.attribute.PosixFilePermission;
-import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.io.IOException;
@@ -19,27 +18,17 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.file.*;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
-
-import org.jgrapht.alg.flow.PushRelabelMFImpl.VertexExtension;
-
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.Stack;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import edu.mit.jwi.item.IWord;
-import edu.mit.jwi.item.IWordID;
-import edu.mit.jwi.item.Pointer;
 import edu.stanford.nlp.trees.Tree;
 import evaluation.InputInstance;
 import evaluation.InputSentence;
@@ -51,8 +40,6 @@ public class MyExecutor {
 	//used for lemmatization
 	private StanfordUtilsAdapter stanfordAdapter = null;  
 	private WordnetAdapter wordnet = null;
-	private KelpAdapter kelp = null;
-	
 	//saving params
 	private String fileNameSentences = "sentences";
 	private final Object fileLock = new Object();
@@ -61,13 +48,11 @@ public class MyExecutor {
 	
 	
 	
-	private int trial = 1;
-	
 	//CONSTRUCTOR
 	public MyExecutor(){	
-		this.stanfordAdapter = new StanfordUtilsAdapter();
+		//this.stanfordAdapter = new StanfordUtilsAdapter();
 		this.wordnet = new WordnetAdapter();
-		this.kelp = new KelpAdapter();	
+		//this.kelp = new KelpAdapter();	
 	}
 	
 	public void closeDictionary() {
@@ -109,9 +94,9 @@ public class MyExecutor {
 			} else {
 				// Run solver to disambiguate senses
 				Instant beforeTSP = Instant.now();
-				graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+graph.getId());
-				this.setTSPSolver(graph.getId());
-				if(this.runSolver(graph.getId())) {
+				graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+graph.getSentenceId());
+				this.setTSPSolver(graph.getSentenceId());
+				if(this.runSolver(graph.getSentenceId())) {
 					Instant afterTSP = Instant.now();
 					Duration dTSP = Duration.between(beforeTSP, afterTSP);
 					graph.log(Globals.logInfo, "[TIME][TSP] " + dTSP.toString());
@@ -123,6 +108,9 @@ public class MyExecutor {
 		Instant after = Instant.now();
 		Duration time = Duration.between(before, after);
 		graph.log(Globals.logWarning, "[FINISHED] Time: " + time);
+		if (!Globals.developmentLogs) {
+			System.out.println("[GRAPH " + graph.getSentenceId() + "][FINISHED] Time: " + time);
+		}
 		graph.logOnFile();
 	}
 	
@@ -185,14 +173,10 @@ public class MyExecutor {
 				//sort word by their position in the text
 				SortedSet<Integer> keys = new TreeSet<>(disambiguationMap.keySet());
 				for (Integer key : keys) { 
-				   MyVertex v = disambiguationMap.get(key);
-				   if(evaluation) { //evaluation mode output format
-						if(v.getSentenceTermId() != null){
-							log += "[SENTENCE TERM " + v.getSentenceTermId() + "] Disambiguated as [" + v.getGlossKey() + "] with centrality " + v.getCentrality() + "\n";
-							fileContent += v.getSentenceTermId()+" "+v.getGlossKey()+"\n";
-						}
-					} else { //sentence wsd output format
-						fileContent += "Disambiguated \""+v.getWord()+"\" as \n\t\t ("+v.getGlossKey()+") \""+this.wordnet.getGloss(v.getWord().getID())+"\"\n";
+					MyVertex v = disambiguationMap.get(key);
+					if(v.getSentenceTermId() != null){
+						log += "[SENTENCE TERM " + v.getSentenceTermId() + "] Disambiguated as [" + v.getGlossKey() + "] with centrality " + v.getCentrality() + "\n";
+						fileContent += v.getSentenceTermId()+" "+v.getGlossKey()+"\n";
 					}
 				}
 				keyFileWriter.write(fileContent);
@@ -236,7 +220,7 @@ public class MyExecutor {
 	 * * dynamically update configuration file
 	 * Change param of TSPSolver main file to set input and output files
 	 */
-	private void setTSPSolver(int id){
+	private void setTSPSolver(String id){
 		
 		BufferedReader oldFileReader = null;
 		BufferedWriter newFileWriter = null;
@@ -288,7 +272,7 @@ public class MyExecutor {
 	 * Runs the tspSolver script. Results are saved in G-TOURS folder.
 	 * @return true if the solver completed its task, false otherwise
 	 */
-	public boolean runSolver(int id){
+	public boolean runSolver(String id){
 		
 		File solver = new File(Globals.tspSolverPathFileName+id);
 		if (solver.exists()) {
@@ -319,20 +303,6 @@ public class MyExecutor {
 					System.out.println(output);
 					System.out.println("____________________________________");
 				}
-				
-				//if the error is a segmentation fault error, it can be solved running again the script
-				//it tries again for a max of 100 times
-				/*if(errorStream.contains("Segmentation fault")){
-					if(this.trial<=100){
-						System.out.println("Retrying computation. Trial #"+this.trial);
-						this.trial++;
-						runSolver();
-					}					
-				}else if((errorStream.contains("not greater than"))||errorStream.contains("dimension < 3")){
-					System.out.println("The graph does not have enough node to run tsp-solver.");
-					return false;
-				}*/
-				this.trial = 1;				
 				
 				return true;
 				
@@ -481,10 +451,6 @@ public class MyExecutor {
 							v = wordMap.get(w1);
 						} else {
 							v = new MyVertex(w1);
-							String gloss = w1.getSynset().getGloss().split("\"")[0];
-							//compute dependency trees for the gloss
-							ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(gloss);
-							v.setTreeRep(treeRepresentations.get(0).toString());
 							graph.addNode(v);
 							wordMap.put(w1, v);
 						}
@@ -555,14 +521,7 @@ public class MyExecutor {
 		//for all the WordNet glosses of that word and its lemma
 		for(IWord word : this.wordnet.getWordsList(input.lemma, input.pos)) {
 			String gloss = word.getSynset().getGloss().split("\"")[0];
-			//compute dependency trees for the gloss
-			ArrayList<Tree> treeRepresentations = stanfordAdapter.computeDependencyTree(gloss);
-			if(treeRepresentations.size()>1){
-				//if the gloss is composed by multiple sentences, there could be more dependency tree
-				//in this case a message is given and only the first tree is considered
-				graph.log(Globals.logInfo, "More than one tree representation for a gloss of \""+input.lemma+"\" ("+gloss+") computed. Took the first one.");
-			}
-			MyVertex v = new MyVertex(input, word, treeRepresentations.get(0).toString(), gloss);
+			MyVertex v = new MyVertex(input, word, "", gloss);
 			graph.addNode(v);
 		}		
 	}
@@ -730,7 +689,7 @@ public class MyExecutor {
 			
 			//open reader for the tspSolver output file
 			BufferedReader tourFileReader = new BufferedReader(
-					new FileReader(Globals.tspSolverPathToGTOURS+Globals.fileName+graph.getId()+".tour"));
+					new FileReader(Globals.tspSolverPathToGTOURS+Globals.fileName+graph.getSentenceId()+".tour"));
 			
 			Map<Integer, MyVertex> disambiguationMap = new HashMap<Integer, MyVertex>();
 			String line;
