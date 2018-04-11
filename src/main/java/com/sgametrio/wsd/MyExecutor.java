@@ -540,13 +540,23 @@ public class MyExecutor {
 				this.computeIterativePageRankCentrality(graph);
 				break;
 			case Globals.inDegreeCentrality:
-				//this.computeInDegVertexCentrality(supportGraph);
+				this.computeInDegreeCentrality(graph);
 				break;
 			default:
 				this.computeKppSingleEdgeCentrality(graph);
 				break;
 		}
 			
+	}
+
+	private void computeInDegreeCentrality(MyGraph graph) {
+		// Weight vertexes by kpp centrality
+		ArrayList<MyVertex> vertexes = graph.getNodes();
+		int size = vertexes.size();
+		for (int i = 0; i < size; i++) {
+			MyVertex node = vertexes.get(i);
+			node.setCentrality((float) node.getEdges().size() / size );
+		}
 	}
 
 	/**

@@ -59,12 +59,12 @@
 ##### depth DFS = 4
 * All: 51.1
 
-### pagerank centrality graph -> disambiguate by centrality
+### FALSO pagerank centrality graph -> disambiguate by centrality
 ##### depth DFS = 4
 * Mini: 46.2
 * All: 50.8-50.9 -> 30M
 
-### pagerank centrality graph -> connected graph -> tsp
+### FALSO pagerank centrality graph -> connected graph -> tsp
 ##### depth DFS = 2
 * All: 43.3
 
@@ -75,3 +75,6 @@
 * Mini: 43.6
 * All: 47.3-47.5 -> 3H16M -> 1H19M
 
+### pagerank centrality graph -> connected graph -> tsp
+##### depth = 4
+* Mini: 43.6

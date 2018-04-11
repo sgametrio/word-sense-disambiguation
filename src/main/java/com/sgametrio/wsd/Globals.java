@@ -31,7 +31,7 @@ public class Globals {
 	public static final String currentDataset = MiniSenseval3;
 	public static int nodesDepth = 4;	
 	// Current centrality method
-	public static final String computeCentrality = pageRankCentrality;
+	public static final String computeCentrality = inDegreeCentrality;
 	
 	// Current tree
 	public static final String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
