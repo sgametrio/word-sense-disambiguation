@@ -17,6 +17,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import evaluation.ExtendedScorer;
 import evaluation.InputExtractor;
 import evaluation.InputSentence;
 import evaluation.Scorer;
@@ -83,18 +84,25 @@ public class WsdLauncher {
 			while (!executor.isTerminated());
 			System.out.println("Finished results");
 
+			String results = "";
 			//launch Navigli's evaluation framework script
 			if (!Globals.runSolver) {
-				launchEvaluator(Globals.currentGoldFile, Globals.resultsPath+Globals.fileNameCentrality+Globals.resultsFileName);
+				results = Globals.resultsPath+Globals.fileNameCentrality+Globals.resultsFileName;
+				//launchEvaluator(Globals.currentGoldFile, Globals.resultsPath+Globals.fileNameCentrality+Globals.resultsFileName);
 			} else {
-				launchEvaluator(Globals.currentGoldFile, Globals.resultsPath+Globals.fileName+Globals.resultsFileName);
+				results = Globals.resultsPath+Globals.fileName+Globals.resultsFileName;
+				//launchEvaluator(Globals.currentGoldFile, Globals.resultsPath+Globals.fileName+Globals.resultsFileName);
 			}	
+			// Remember to close dictionary
+			myExecutor.closeDictionary();
+			launchEvaluator(Globals.currentGoldFile, results);
 		} catch (Exception e) {
+			// Remember to close dictionary
+			myExecutor.closeDictionary();
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 			System.err.println(e);
 		}
-		// Remember to close dictionary
-		myExecutor.closeDictionary();
+		
 		Instant after = Instant.now();
 		System.out.println("Time executed: " + Duration.between(before, after));
 	}
@@ -106,12 +114,14 @@ public class WsdLauncher {
 	 */
 	public static void launchEvaluator(String goldStandardPathToFile, String resultsPathToFile){
 		String[] goldAndRes = {goldStandardPathToFile, resultsPathToFile};
+		ExtendedScorer extended_scorer = new ExtendedScorer();
 		try {
 			Scorer.main(goldAndRes);
 		} catch (IOException e) {
-			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-			System.err.println(e);
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		extended_scorer.doEvaluation(goldStandardPathToFile, resultsPathToFile);
 	}
 	
 	/**

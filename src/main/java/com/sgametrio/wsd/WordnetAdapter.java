@@ -14,6 +14,7 @@ import java.util.Map;
 import edu.mit.jwi.IRAMDictionary;
 import edu.mit.jwi.RAMDictionary;
 import edu.mit.jwi.data.ILoadPolicy;
+import edu.mit.jwi.data.parse.SenseKeyParser;
 import edu.mit.jwi.item.IIndexWord;
 import edu.mit.jwi.item.ISenseKey;
 import edu.mit.jwi.item.ISynset;
@@ -167,6 +168,15 @@ public class WordnetAdapter {
 			word = dict.getWord(senseKey);
 			return word;
 		}
+		
+		public IWord getMostCommonWord(String sense) {
+			IWord word = null;
+			ISenseKey senseKey = SenseKeyParser.getInstance().parseLine(sense);
+			word = dict.getWord(senseKey);
+			IIndexWord idxWord = dict.getIndexWord(word.getLemma(), word.getPOS());
+			return dict.getWord(idxWord.getWordIDs().get(0));
+		}
+		
 		/**
 		 * To retrieve semantic pointers, one uses the ISynset.getRelatedSynsets(IPointer) method,
 		 * and to retrieve lexical pointers, one should use the IWord.getRelatedWords(IPointer) method

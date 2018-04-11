@@ -179,6 +179,9 @@ public class MyGraph {
 		// Prints edge weights
 		for(int row = 0; row < size; row++){
 			for(int col = 0; col < size; col++){
+				if (invertedMatrix[row][col] <= 0) {
+					log(Globals.logSevere, "[GTSP] Edge with weight < 0");
+				}
 				content += invertedMatrix[row][col]+" ";
 			}
 			content += "\n";
@@ -197,8 +200,7 @@ public class MyGraph {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(path + filename+".gtsp"));
 			writer.write(content);
 			writer.close();
-			if (Globals.verbose)
-				System.out.println("Saved graph to " + path + filename + ".gtsp");
+			log(Globals.logInfo, "Saved graph to " + path + filename + ".gtsp");
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -268,7 +270,7 @@ public class MyGraph {
 			for (int j = 0; j < matrix[i].length; j++) {
 				if (invertedMatrix[i][j] == -1) {
 					// Add penalty to non-existent edges
-					invertedMatrix[i][j] = Math.abs(max*10) + 2;
+					invertedMatrix[i][j] = Math.abs(max*2) + 2;
 				} else {
 					invertedMatrix[i][j] = max - invertedMatrix[i][j] + min;
 				}
@@ -415,34 +417,6 @@ public class MyGraph {
 	}
 	
 	/**
-	 * Compute KPP centrality (closeness centrality) on every nodes present in the graph.
-	 * KPP is computed as sum of the distance divided by nodes cardinality.
-	 * Edge weight here is node similarity (higher is more similar, so, the node, is more central).
-	 * So I do not reverse edge weight like the original formula says (because the original formula counts on node distance)
-	 * @param graph
-	 */
-	private void computeKppVertexCentrality() {
-		// Weight vertexes by kpp centrality
-		ArrayList<MyVertex> vertexes = this.getNodes();
-		int size = vertexes.size();
-		for (int i = 0; i < size; i++) {
-			float kppCentrality = 0;
-			float distance = 0;
-			for (int j = 0; j < size; j++) {
-				if (i != j) {
-					float distPath = this.distance(vertexes.get(i), vertexes.get(j));
-					// Check if path exists (or edge)
-					if (distPath > 0)
-						distance += distPath;
-				}
-			}
-			if (size > 1)
-				kppCentrality = distance / (size - 1);
-			vertexes.get(i).setCentrality(kppCentrality);			
-		}
-	}
-	
-	/**
 	 * Invert edge weight from values representing closeness to those representing distance
 	 * How can I find the opposite value?
 	 * newWeight = max + min - oldWeight
@@ -511,11 +485,13 @@ public class MyGraph {
 			if (severity >= Globals.logWarning) {
 				System.out.println("[GRAPH " + this.getSentenceId() + "]" + log);
 			} 
-			if (severity >= Globals.logSevere) {
-				System.out.println("Flush logs and exit...");
-				this.logOnFile();
-				System.exit(1);
-			}
+		} else if (severity ==  Globals.logSevere) {
+			this.log += log + "\n";
+			System.out.println(log);
+			this.logOnFile();
+			System.exit(1);
+		} else if (severity == Globals.logStatistics) {
+			this.log += log + "\n";
 		}
 	}
 
@@ -532,5 +508,13 @@ public class MyGraph {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	public int getEdgesSize() {
+		int sum = 0;
+		for (MyVertex v : vertexes) {
+			sum += v.getEdges().size();
+		}
+		return sum;
 	}
 }

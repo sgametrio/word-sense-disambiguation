@@ -35,6 +35,7 @@ public class Scorer {
 		System.out.println("P=\t"+String.format("%.1f", m[0]*100)+"%");
 		System.out.println("R=\t"+String.format("%.1f", m[1]*100)+"%");
 		System.out.println("F1=\t"+String.format("%.1f", m[2]*100)+"%");
+		
 	}
 	
 	private static void exit() {

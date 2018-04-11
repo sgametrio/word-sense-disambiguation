@@ -90,16 +90,16 @@ public class MyExecutor {
 				disambiguationMap.put(v.getSentenceIndex(), v);
 				String log = this.printMapToFile(disambiguationMap, Globals.fileName, Globals.evaluation, false);
 				if (log.length() > 0)
-					graph.log(Globals.logInfo, log);
+					graph.log(Globals.logStatistics, log);
 			} else {
 				// Run solver to disambiguate senses
 				Instant beforeTSP = Instant.now();
 				graph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+graph.getSentenceId());
 				this.setTSPSolver(graph.getSentenceId());
-				if(this.runSolver(graph.getSentenceId())) {
+				if(this.runSolver(graph)) {
 					Instant afterTSP = Instant.now();
 					Duration dTSP = Duration.between(beforeTSP, afterTSP);
-					graph.log(Globals.logInfo, "[TIME][TSP] " + dTSP.toString());
+					graph.log(Globals.logStatistics, "[TIME][TSP] " + dTSP.toString());
 					this.generateOutputFile(graph);
 				}
 			}
@@ -107,10 +107,8 @@ public class MyExecutor {
 		}
 		Instant after = Instant.now();
 		Duration time = Duration.between(before, after);
-		graph.log(Globals.logWarning, "[FINISHED] Time: " + time);
-		if (!Globals.developmentLogs) {
-			System.out.println("[GRAPH " + graph.getSentenceId() + "][FINISHED] Time: " + time);
-		}
+		graph.log(Globals.logStatistics, "[FINISHED] " + time);
+		System.out.println("[GRAPH " + graph.getSentenceId() + "][FINISHED] Time: " + time);
 		graph.logOnFile();
 	}
 	
@@ -138,7 +136,7 @@ public class MyExecutor {
 		}
 		// Print results
 		String log = this.printMapToFile(disambiguationMap, Globals.fileNameCentrality, Globals.evaluation, sentences);
-		graph.log(Globals.logInfo, log);
+		graph.log(Globals.logStatistics, log);
 		// results in .key format
 	}
 
@@ -161,7 +159,7 @@ public class MyExecutor {
 	private String printMapToFile(Map<Integer, MyVertex> disambiguationMap, String fileName, boolean evaluation, boolean sentences) {
 		// print Map ordered by key
 		synchronized (fileLock) {
-			String log = "";
+			String log = "[SENTENCE TERMS]\n";
 			String fileContent = "";
 			try {
 				PrintWriter keyFileWriter;
@@ -175,7 +173,7 @@ public class MyExecutor {
 				for (Integer key : keys) { 
 					MyVertex v = disambiguationMap.get(key);
 					if(v.getSentenceTermId() != null){
-						log += "[SENTENCE TERM " + v.getSentenceTermId() + "] Disambiguated as [" + v.getGlossKey() + "] with centrality " + v.getCentrality() + "\n";
+						log += v.getSentenceTermId() + " " + v.getGlossKey() + " " + v.getCentrality() + "\n";
 						fileContent += v.getSentenceTermId()+" "+v.getGlossKey()+"\n";
 					}
 				}
@@ -272,8 +270,8 @@ public class MyExecutor {
 	 * Runs the tspSolver script. Results are saved in G-TOURS folder.
 	 * @return true if the solver completed its task, false otherwise
 	 */
-	public boolean runSolver(String id){
-		
+	public boolean runSolver(MyGraph graph){
+		String id = graph.getSentenceId();
 		File solver = new File(Globals.tspSolverPathFileName+id);
 		if (solver.exists()) {
 			try{
@@ -297,11 +295,11 @@ public class MyExecutor {
 				String errorStream = this.getProcessOutput(is);
 				String output = this.getProcessOutput(p.getInputStream());
 
-				System.err.print(errorStream);
+				if (errorStream.length() > 1)
+					graph.log(Globals.logWarning, errorStream);
 				//if verbose mode is on, prints tsp solver output and errors
 				if(Globals.solverVerbosity){
-					System.out.println(output);
-					System.out.println("____________________________________");
+					graph.log(Globals.logInfo, output);
 				}
 				
 				return true;
@@ -373,13 +371,15 @@ public class MyExecutor {
 		this.createNodesByDFS(centralityGraph, Globals.nodesDepth);
 		Instant afterDFS = Instant.now();
 		Duration dDFS = Duration.between(beforeDFS, afterDFS);
-		graph.log(Globals.logInfo, "[TIME][DFS] " + dDFS.toString());
+		graph.log(Globals.logStatistics, "[TIME][DFS] " + dDFS.toString());
 		if (Globals.centrality) {
 			Instant beforeC = Instant.now();
 			this.computeVertexCentrality(centralityGraph);
 			Instant afterC = Instant.now();
 			Duration dC = Duration.between(beforeC, afterC);
-			graph.log(Globals.logInfo, "[TIME][CENTRALITY] " + dC.toString());
+			graph.log(Globals.logStatistics, "[TIME][CENTRALITY] " + dC.toString());
+			graph.log(Globals.logStatistics, "[SIZE][NODES] " + centralityGraph.getNodes().size());
+			graph.log(Globals.logStatistics, "[SIZE][EDGES] " + centralityGraph.getEdgesSize());
 			// Distribute centrality on edges
 			this.copyCentrality(centralityGraph.getNodes(), graph.getNodes());
 			this.distributeCentralityOnEdges(graph);
@@ -484,6 +484,7 @@ public class MyExecutor {
 				float mean = graph.computeMeanCentrality(v, e.getDest());
 				if (mean == 0) {
 					//graph.log(Globals.logInfo, " mean 0 on an edge");
+					// Ghost edges
 					v.removeEdge(e);
 				} else {
 					e.setWeight(mean*e.getWeight());
@@ -718,7 +719,7 @@ public class MyExecutor {
 			
 			tourFileReader.close();
 			//open writer to write results
-			graph.log(Globals.logInfo, this.printMapToFile(disambiguationMap, Globals.fileName, true, false));
+			graph.log(Globals.logStatistics, this.printMapToFile(disambiguationMap, Globals.fileName, true, false));
 			
 		} catch (FileNotFoundException e) {
 			//output file of tsp solver not created, the graph size wasn't >1

@@ -19,11 +19,34 @@ public class Globals {
 	public static final String Senseval3 = "senseval3";
 	public static final String MiniSenseval3 = "mini-senseval3";
 	public static final String MediumSenseval3 = "medium-senseval3";
+	// Available centrality measures
+	public static final String inDegreeCentrality = "in-degree";
+	public static final String pageRankCentrality = "page-rank";
+	public static final String kppCentrality = "kpp";
+	public static final String allCentrality = "all";
+	public static final String kppBellmanFordCentrality = "bellman-ford";
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
 	public static final String currentDataset = All;
-	public static int nodesDepth = 3;
+	public static int nodesDepth = 3;	
+	// Current centrality method
+	public static final String computeCentrality = pageRankCentrality;
+	
+	// Current tree
+	public static final String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
+	public static final float precision = 100000;
+	/*** Execution parameters ***/
+	public static boolean saveGml = false;
+	public static boolean solverVerbosity = false;
+	// true if you want to use solver to disambiguate, false if you want to disambiguate by centrality
+	public static boolean runSolver = true;
+	public static boolean developmentLogs = true;
+	public static boolean evaluation = true;
+	// true if you want to compute node centrality and distribute it on edges
+	public static boolean centrality = true;
+
+	public static float dampingFactor = (float)1;	
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
 
@@ -50,10 +73,10 @@ public class Globals {
 	public static final String tourPath = tspSolverPathToGTOURS;
 	public static final String piFilesPath = tspSolverHomeDir + piFiles;
 	
-	public static final int logInfo = 0;
+	public static final int logInfo = -1;
+	public static final int logStatistics = 0;
 	public static final int logWarning = 1;
 	public static final int logSevere = 2;
-	public static final int logStatistics = 3;
 	
 	public static final String fileNameCentrality = currentDataset + "_centrality";
 	public static final String fileName = currentDataset + "_subTrees";
@@ -62,32 +85,4 @@ public class Globals {
 	 * Configurable solver runs
 	 */
 	public static final int runs = 1;
-
-	// Available centrality measures
-	public static final String inDegreeCentrality = "in-degree";
-	public static final String pageRankCentrality = "page-rank";
-	public static final String kppCentrality = "kpp";
-	public static final String allCentrality = "all";
-	public static final String kppBellmanFordCentrality = "bellman-ford";
-	
-	// Current centrality method
-	public static final String computeCentrality = pageRankCentrality;
-	
-	// Current tree
-	public static final String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
-
-	public static final float precision = 100000;
-
-	/*** Execution parameters ***/
-	public static boolean saveGml = false;
-	public static boolean verbose = false;
-	public static boolean solverVerbosity = false;
-	// true if you want to use solver to disambiguate, false if you want to disambiguate by centrality
-	public static boolean runSolver = true;
-	public static boolean developmentLogs = false;
-	public static boolean evaluation = true;
-	// true if you want to compute node centrality and distribute it on edges
-	public static boolean centrality = true;
-
-	public static float dampingFactor = (float)1;	
 }
