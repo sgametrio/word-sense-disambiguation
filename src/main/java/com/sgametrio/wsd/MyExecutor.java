@@ -601,6 +601,61 @@ public class MyExecutor {
 	 * PR(i, t+1) = sum_(i,j)inE_(PR(j, t)/OutDegree(j)
 	 * @param graph
 	 */
+	private void computeRealIterativePageRankCentrality(MyGraph graph) {
+		ArrayList<MyVertex> nodes = graph.getNodes();
+		// random-surfer: close to 0 -> more random, close to 1 -> less
+		float alpha = Globals.dampingFactor;
+		int size = nodes.size();
+		// Set initial page rank centrality
+		for (MyVertex node : nodes) {
+			node.setCentrality(round((float) 1 / size));
+		}
+		// Compute now iteratively until convergence
+		boolean convergence = false;
+		float[] sums = new float[size];
+		int cycle = 0;
+		while (convergence == false && cycle < 5) {
+			convergence = true;
+			int j = 0;
+			for (MyVertex node : nodes) {
+				float oldPageRank = node.getCentrality();
+				float sum = 0;
+				for (MyEdge e : node.getEdges()) {
+					// Avoid ghost edges
+					if (e.getWeight() == -1)
+						continue;
+					sum += e.getDest().getCentrality() / e.getDest().getOutDegree();
+					// random-surfer adjustment
+					sum *= alpha;
+					sum += (1-alpha)/size;
+				}
+				//System.out.println("node " + node.getId() + "  " + sums[j] + " --> " + sum);
+				sums[j] = sum;
+				j++;
+			}
+			// Update centralities and verify if convergence has been found 
+			for (int i = 0; i < nodes.size(); i++) {
+				MyVertex node = nodes.get(i);
+				float pagerank = round(node.getCentrality());
+				float sum = round(sums[i]);
+				if (pagerank == sum)
+					continue;
+				node.setCentrality(sum);
+				//System.out.println(sum + "  " + pagerank);
+				convergence = false;
+			}
+			cycle++;
+		}
+	}
+	private float round(float f) {
+		return (float) Math.round(f * Globals.precision) / Globals.precision;
+	}
+
+	/**
+	 * Compute page rank on graph nodes iteratively:
+	 * PR(i, t+1) = sum_(i,j)inE_(PR(j, t)/OutDegree(j)
+	 * @param graph
+	 */
 	private void computeIterativePageRankCentrality(MyGraph graph) {
 		ArrayList<MyVertex> nodes = graph.getNodes();
 		// random-surfer: close to 0 -> more random, close to 1 -> less
@@ -626,6 +681,7 @@ public class MyExecutor {
 					sum *= alpha;
 					sum += (1-alpha)/size;
 				}
+				// pagerank a bit false because I have to update the centralities after the iteration on nodes
 				node.setCentrality(sum);
 				pagerank = node.getCentrality();
 				if (pagerank != oldPageRank) {

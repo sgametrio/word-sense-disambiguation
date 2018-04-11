@@ -28,8 +28,8 @@ public class Globals {
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
-	public static final String currentDataset = All;
-	public static int nodesDepth = 3;	
+	public static final String currentDataset = MiniSenseval3;
+	public static int nodesDepth = 4;	
 	// Current centrality method
 	public static final String computeCentrality = pageRankCentrality;
 	

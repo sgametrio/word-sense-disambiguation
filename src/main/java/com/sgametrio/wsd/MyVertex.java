@@ -122,8 +122,7 @@ public class MyVertex {
 	}
 
 	public void setCentrality(float centrality) {
-		// Round up to 5 decimals
-		this.centrality = (float) Math.round(centrality * Globals.precision) / Globals.precision;
+		this.centrality = centrality;
 	}
 
 	public void addEdge(MyVertex target, float weight) {

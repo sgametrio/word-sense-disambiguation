@@ -43,6 +43,8 @@ public class ExtendedScorer extends Scorer {
 		int correctDisambiguations = 0;
 		int zeroCentralityTerms = 0;
 		int zeroCentralityMostCommonTerms = 0;
+		int zeroCentralityMostCommonCorrect = 0;
+		int zeroCentralityCorrect = 0;
 		// 
 		ArrayList<Duration> totalTimes = new ArrayList<Duration>();
 		ArrayList<Duration> tspTimes = new ArrayList<Duration>();
@@ -86,6 +88,7 @@ public class ExtendedScorer extends Scorer {
 							String senseKeyMostCommon = SenseKey.toString(mostCommon.getSenseKey());
 							String gold_sense_key = goldMap.get(sentence_id).get(instance_id).get(0);
 							boolean most_common = false;
+							boolean correct = false;
 							if (eval_sense_key.equals(senseKeyMostCommon)) {
 								most_common = true;
 								sentenceMostCommon++;
@@ -94,6 +97,7 @@ public class ExtendedScorer extends Scorer {
 								sentenceGoldMostCommon++;
 							}
 							if (eval_sense_key.equals(gold_sense_key)) {
+								correct = true;
 								sentenceCorrectTerms++;
 								if (most_common) {
 									sentenceCorrectMostCommon++;
@@ -103,6 +107,12 @@ public class ExtendedScorer extends Scorer {
 								sentenceZeroCentrality++;
 								if (most_common) {
 									zeroCentralityMostCommonTerms++;
+									if (correct) {
+										zeroCentralityMostCommonCorrect++;
+									}
+								}
+								if (correct) {
+									zeroCentralityCorrect++;
 								}
 							}
 							sentenceTerms++;							
@@ -159,6 +169,8 @@ public class ExtendedScorer extends Scorer {
 				+ "correct most common disambiguations => " + correctEvalMostCommonTerms + "\n"
 				+ "correct most common terms precision => " + (float) correctEvalMostCommonTerms / goldMostCommonTerms + "\n"
 				+ "terms disambiguated with zero centrality => " + zeroCentralityTerms + "\n"
+				+ "correct most common terms zero centrality => " + zeroCentralityMostCommonCorrect + "\n"
+				+ "correct terms zero centrality => " + zeroCentralityCorrect + "\n"
 				+ "\n";
 		System.out.println(report);
 		try {
