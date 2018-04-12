@@ -9,7 +9,7 @@ public class Globals {
 	public static final String path = wordnetHome + File.separator + "dict";
 	
 	public static final String resultsPath = "RESULTS/";
-	public static final String resultsFileName = "_wsdResults.KEY";
+	public static final String resultsExt = "_eval.KEY";	
 	
 	public static final String All = "ALL";
 	public static final String Semeval2007 = "semeval2007";
@@ -25,17 +25,21 @@ public class Globals {
 	public static final String kppCentrality = "kpp";
 	public static final String allCentrality = "all";
 	public static final String kppBellmanFordCentrality = "bellman-ford";
+	public static final String closenessCentrality = "closeness";
+	public static final String eigenvectorCentrality = "eigenvector";
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
-	public static final String currentDataset = MiniSenseval3;
+	public static final String currentDataset = All;
 	public static int nodesDepth = 4;	
 	// Current centrality method
-	public static final String computeCentrality = inDegreeCentrality;
+	public static final String computeCentrality = pageRankCentrality;
+	
+	public static final String resultsFile = resultsPath + currentDataset + resultsExt;
 	
 	// Current tree
 	public static final String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
-	public static final float precision = 100000;
+	public static final int precision = 1000;
 	/*** Execution parameters ***/
 	public static boolean saveGml = false;
 	public static boolean solverVerbosity = false;
@@ -55,7 +59,7 @@ public class Globals {
 	
 	public static final String currentGoldFile = pathToDataset + goldFileSuffix;
 	public static final String currentDataFile = pathToDataset + dataFileSuffix;
-	public static final String myKeyFile = resultsPath + currentDataset + resultsFileName;
+	public static final String myKeyFile = resultsPath + currentDataset + resultsExt;
 	
 	public static final String tspSolverHomeDir = "src/main/resources/GLKH-1.0/";
 	public static final String GTSPLIBDirectory = "GTSPLIB/";
@@ -78,8 +82,7 @@ public class Globals {
 	public static final int logWarning = 1;
 	public static final int logSevere = 2;
 	
-	public static final String fileNameCentrality = currentDataset + "_centrality";
-	public static final String fileName = currentDataset + "_subTrees";
+	public static final String fileName = currentDataset;
 
 	/**
 	 * Configurable solver runs
