@@ -20,7 +20,7 @@ public class Globals {
 	public static final String MiniSenseval3 = "mini-senseval3";
 	public static final String MediumSenseval3 = "medium-senseval3";
 	// Available centrality measures
-	public static final String inDegreeCentrality = "in-degree";
+	public static final String degreeCentrality = "degree";
 	public static final String pageRankCentrality = "page-rank";
 	public static final String kppCentrality = "kpp";
 	public static final String allCentrality = "all";
@@ -31,9 +31,9 @@ public class Globals {
 	 *  Change this if you want to change current evaluation dataset
 	 */
 	public static final String currentDataset = All;
-	public static int nodesDepth = 4;	
+	public static int nodesDepth = 3;	
 	// Current centrality method
-	public static final String computeCentrality = closenessCentrality;
+	public static final String computeCentrality = degreeCentrality;
 	
 	public static final String resultsFile = resultsPath + currentDataset + resultsExt;
 	

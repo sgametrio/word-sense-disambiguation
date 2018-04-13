@@ -126,7 +126,7 @@ public class ExtendedScorer extends Scorer {
 						zeroCentralityTerms += sentenceZeroCentrality;
 						// Now evaluate precisions for sentence
 						correctTermsPrecision.add((float)sentenceCorrectTerms/sentenceTerms);
-						correctMostCommonPrecision.add((float)sentenceCorrectMostCommon/sentenceGoldMostCommon);
+						correctMostCommonPrecision.add((float)sentenceCorrectMostCommon/sentenceMostCommon);
 						zeroCentralityPrecision.add((float)sentenceZeroCentrality/sentenceTerms);
 						mostCommons.add(sentenceMostCommon);
 					} else if (line.contains("[TIME]")) {

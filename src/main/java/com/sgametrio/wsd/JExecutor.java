@@ -31,6 +31,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import additional.KppClosenessCentrality;
+import dk.aaue.sna.alg.centrality.DegreeCentrality;
 import dk.aaue.sna.alg.centrality.EigenvectorCentrality;
 
 import org.jgrapht.alg.scoring.PageRank;
@@ -63,8 +64,9 @@ public class JExecutor {
 	 * the lemma, the word as it was written in the sentence, the index of the word in the sentence and
 	 * the params of the word given in the evaluation framework
 	 */
-	public void performDisambiguation(InputSentence input){
+	public void performDisambiguation(InputSentence input) {
 		Instant before = Instant.now();
+		// Graphs build
 		ArrayList<InputInstance> selectedInstances = this.mySelectPos(input.instances);
 
 		input.instances.clear();
@@ -83,8 +85,12 @@ public class JExecutor {
 		}
 		// Add auxiliary nodes to compute centrality
 		this.addDFSNodes(cGraph);
+		// End graphs build
 		// Use centrality to disambiguate senses
+		Instant beforeC = Instant.now();
 		Map<JNode, Double> scores = this.computeCentrality(cGraph);
+		Instant afterC = Instant.now();
+		cGraph.log(Globals.logStatistics, "[TIME][CENTRALITY][" + Globals.computeCentrality + "] " + Duration.between(beforeC, afterC));
 		//dGraph.printCentrality();
 		// Distribute centralities on edges
 		this.createEdgesByCentrality(dGraph);
@@ -158,7 +164,7 @@ public class JExecutor {
 		Map<Integer, JNode> disambiguationMap = new HashMap<Integer, JNode>();
 		// Readable results
 		ArrayList<JNode> array = graph.getVertexArray();
-		for (JNode v : graph.getVertexArray()) {
+		for (JNode v : array) {
 			int sentenceIndex = v.getSentenceIndex();
 			if (sentenceIndex < 0)
 				continue;
@@ -485,8 +491,8 @@ public class JExecutor {
 				return this.computeKppClosenessCentrality(centralityGraph);
 			case Globals.pageRankCentrality:
 				return this.computeIterativePageRankCentrality(centralityGraph);
-			case Globals.inDegreeCentrality:
-				//this.computeInDegreeCentrality(centralityGraph);
+			case Globals.degreeCentrality:
+				return this.computeDegreeCentrality(centralityGraph);
 			//case Globals.closenessCentrality:
 				//return this.computeClosenessCentrality(centralityGraph);
 			case Globals.eigenvectorCentrality:
@@ -496,6 +502,13 @@ public class JExecutor {
 			return null;
 		}
 			
+	}
+
+	private Map<JNode, Double> computeDegreeCentrality(JGraph graph) {
+		DegreeCentrality<JNode, DefaultWeightedEdge> ec = new DegreeCentrality<JNode, DefaultWeightedEdge>(graph);
+		Map<JNode, Double> scores = ec.calculate().getRaw();
+		this.assignScores(graph, scores);
+		return scores;
 	}
 
 	private Map<JNode, Double> computeIterativePageRankCentrality(JGraph graph) {
@@ -531,45 +544,45 @@ public class JExecutor {
 	 * @param graph
 	 */
 	private void generateOutputFile(JGraph graph){
-			try {
-				//open reader for the tspSolver output file
-				BufferedReader tourFileReader = new BufferedReader(
-						new FileReader(Globals.tspSolverPathToGTOURS+Globals.fileName+graph.getSentenceId()+".tour"));
-				
-				Map<Integer, JNode> disambiguationMap = new HashMap<Integer, JNode>();
-				String line;
-				boolean read = false;
-				
-				//read the tspSolverOutput file
-				ArrayList<JNode> array = graph.getVertexArray();
-				while((line = tourFileReader.readLine()) != null){
-					if(line.equals("-1")) {
-						read = false;
-					}
-					if(read){
-						int index = Integer.parseInt(line.trim())-1;
-						JNode v = array.get(index);
-						disambiguationMap.put(v.getSentenceIndex(), v);
-					}
-					if(line.equalsIgnoreCase("TOUR_SECTION")){
-						read = true;
-					}
-					if(line.contains("Length = ")){
-						// Check that length is positive, otherwise we have a problem
-						int length = Integer.parseInt(line.split(" ")[4]);
-						if (length <= 0) {
-							graph.log(Globals.logWarning, "[WARNING] Tour has a negative length of: " + length);
-						}
+		try {
+			//open reader for the tspSolver output file
+			BufferedReader tourFileReader = new BufferedReader(
+					new FileReader(Globals.tspSolverPathToGTOURS+Globals.fileName+graph.getSentenceId()+".tour"));
+			
+			Map<Integer, JNode> disambiguationMap = new HashMap<Integer, JNode>();
+			String line;
+			boolean read = false;
+			
+			//read the tspSolverOutput file
+			ArrayList<JNode> array = graph.getVertexArray();
+			while((line = tourFileReader.readLine()) != null){
+				if(line.equals("-1")) {
+					read = false;
+				}
+				if(read){
+					int index = Integer.parseInt(line.trim())-1;
+					JNode v = array.get(index);
+					disambiguationMap.put(v.getSentenceIndex(), v);
+				}
+				if(line.equalsIgnoreCase("TOUR_SECTION")){
+					read = true;
+				}
+				if(line.contains("Length = ")){
+					// Check that length is positive, otherwise we have a problem
+					int length = Integer.parseInt(line.split(" ")[4]);
+					if (length <= 0) {
+						graph.log(Globals.logWarning, "[WARNING] Tour has a negative length of: " + length);
 					}
 				}
-				
-				tourFileReader.close();
-				//open writer to write results
-				graph.log(Globals.logStatistics, this.printMapToFile(disambiguationMap, Globals.fileName));
+			}
+			
+			tourFileReader.close();
+			//open writer to write results
+			graph.log(Globals.logStatistics, this.printMapToFile(disambiguationMap, Globals.fileName));
 
-			} catch (IOException e){
-				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
-				System.err.println(e);
-			}		
+		} catch (IOException e){
+			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
+			System.err.println(e);
+		}		
 	}
 }
