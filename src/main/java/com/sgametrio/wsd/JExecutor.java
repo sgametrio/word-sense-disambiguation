@@ -73,70 +73,86 @@ public class JExecutor {
 		input.instances.addAll(selectedInstances);
 		JGraph dGraph = null;
 		JGraph cGraph = null;
-		synchronized(this.graphLock) {
-			dGraph = new JGraph(input.sentence, input.sentenceId);
-			cGraph = new JGraph(input.sentence, input.sentenceId);
-		}
 		ArrayList<JNode> senses = this.disambiguateInstances(input.instances);
-		// Add disambiguation nodes to both graphs
-		for (JNode n : senses) {
-			dGraph.addVertex(n);
-			cGraph.addVertex(n);
-		}
-		// Add auxiliary nodes to compute centrality
-		this.addDFSNodes(cGraph);
-		// End graphs build
-		// Use centrality to disambiguate senses
-		Instant beforeC = Instant.now();
-		Map<JNode, Double> scores = this.computeCentrality(cGraph);
-		Instant afterC = Instant.now();
-		cGraph.log(Globals.logStatistics, "[TIME][CENTRALITY][" + Globals.computeCentrality + "] " + Duration.between(beforeC, afterC));
-		//dGraph.printCentrality();
-		// Distribute centralities on edges
-		this.createEdgesByCentrality(dGraph);
-		cGraph.exportCustomGml(Globals.gmlPath + Globals.fileName + cGraph.getSentenceId() + "_centrality.gml");
-		if (!Globals.runSolver) {
-			Map<Integer, JNode> map = this.centralityDisambiguation(cGraph);
-			cGraph.log(Globals.logStatistics, this.printMapToFile(map, Globals.fileName));
-		} else {
-			if (dGraph.vertexSet().size() == 0) {
-				// Graph has no vertexes, nothing to disambiguate, continue;
-				dGraph.log(Globals.logInfo, "[NO WORDS] don't have words to disambiguate.");
-			} else if (dGraph.getClusters().size() == 1) {
-				dGraph.log(Globals.logInfo, "[1 CLUSTER] has only 1 cluster, for now prints most common sense");
-				Map<Integer, JNode> disambiguationMap = new HashMap<Integer, JNode>();
-				JNode v = dGraph.getFirstVertex();
-				disambiguationMap.put(v.getSentenceIndex(), v);
-				dGraph.log(Globals.logStatistics, this.printMapToFile(disambiguationMap, Globals.fileName));
-			} else {
-				// Run solver to disambiguate senses
-				Instant beforeTSP = Instant.now();
-				dGraph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, Globals.fileName+dGraph.getSentenceId());
-				this.setTSPSolver(dGraph.getSentenceId());
-				if(this.runSolver(dGraph)) {
-					Instant afterTSP = Instant.now();
-					Duration dTSP = Duration.between(beforeTSP, afterTSP);
-					dGraph.log(Globals.logStatistics, "[TIME][TSP] " + dTSP.toString());
-					this.generateOutputFile(dGraph);
-				}
-			}
+		
+		for (int depth = Globals.minDepth; depth <= Globals.maxDepth; depth++) {
 			
+			synchronized(this.graphLock) {
+				dGraph = new JGraph(input.sentence, input.sentenceId);
+				cGraph = new JGraph(input.sentence, input.sentenceId);
+			}
+			// Add disambiguation nodes to both graphs
+			for (JNode n : senses) {
+				dGraph.addVertex(n);
+				cGraph.addVertex(n);
+			}
+			// Add auxiliary nodes to compute centrality
+			this.addDFSNodes(cGraph, depth);
+			// End graphs build
+			// Run all possible configurations
+			for (String currentCentrality : Globals.centralities) {
+				dGraph.resetLog();
+				cGraph.resetLog();
+				// Use centrality to disambiguate senses
+				Instant beforeC = Instant.now();
+				this.computeCentrality(cGraph, currentCentrality);
+				Instant afterC = Instant.now();
+				cGraph.log(Globals.logStatistics, "[TIME][CENTRALITY][" + currentCentrality + "] " + Duration.between(beforeC, afterC));
+				// id representing configuration
+				String filename = Globals.currentDataset + "_" + currentCentrality + "_" + depth;
+				 
+				String evalCFilename = filename + "_by-centrality";
+				String evalDFilename = filename + "_run-solver";
+				String cFilename = evalCFilename + "_" + cGraph.getSentenceId();
+				String dFilename = evalDFilename + "_" + dGraph.getSentenceId();
+				//dGraph.log(Globals.logInfo, dGraph.printCentrality());
+				//cGraph.log(Globals.logInfo, dGraph.printCentrality());
+				
+				// Disambiguation by centrality
+				Map<Integer, JNode> mapC = this.disambiguateByCentrality(cGraph);
+				cGraph.log(Globals.logStatistics, this.printMapToFile(mapC, evalCFilename));
+				
+				// Disambiguation by TSP
+				Map<Integer, JNode> mapD = this.disambiguateByTSP(dGraph, dFilename);
+				dGraph.log(Globals.logStatistics, this.printMapToFile(mapD, evalDFilename));
+				
+				cGraph.exportCustomGml(Globals.gmlPath + cFilename + ".gml");
+				dGraph.exportCustomGml(Globals.gmlPath + dFilename + ".gml");
+				cGraph.logOnFile(cFilename);
+				dGraph.logOnFile(dFilename);
+			}
 		}
-		dGraph.exportCustomGml(Globals.gmlPath + Globals.fileName + dGraph.getSentenceId() + ".gml");
 		Instant after = Instant.now();
 		Duration time = Duration.between(before, after);
-		dGraph.log(Globals.logStatistics, "[FINISHED] " + time);
-		System.out.println("[GRAPH " + dGraph.getSentenceId() + "][FINISHED] Time: " + time);
-		if (Globals.runSolver) {
-			dGraph.logOnFile();
-		} else {
-			cGraph.logOnFile();
-		}
-		
-		
+		System.out.println("[GRAPH " + input.sentenceId + "][FINISHED] Time: " + time);		
 	}
 	
 	
+	private Map<Integer, JNode> disambiguateByTSP(JGraph dGraph, String dFilename) {
+		// Distribute centralities on edges
+		this.createEdgesByCentrality(dGraph);
+		if (dGraph.vertexSet().size() == 0) {
+			// Graph has no vertexes, nothing to disambiguate, continue;
+			dGraph.log(Globals.logInfo, "[NO WORDS] don't have words to disambiguate.");
+			return null;
+		} else if (dGraph.getClusters().size() == 1) {
+			dGraph.log(Globals.logInfo, "[1 CLUSTER] has only 1 cluster, for now prints most common sense");
+			Map<Integer, JNode> disambiguationMap = new HashMap<Integer, JNode>();
+			JNode v = dGraph.getFirstVertex();
+			disambiguationMap.put(v.getSentenceIndex(), v);
+			return disambiguationMap;
+		} else {
+			Instant beforeTSP = Instant.now();
+			dGraph.saveToGTSP(Globals.tspSolverPathToGTSPLIB, dFilename);
+			this.setTSPSolver(dFilename);
+			dGraph.log(Globals.logInfo, this.runSolver(dFilename));
+			Instant afterTSP = Instant.now();
+			Duration dTSP = Duration.between(beforeTSP, afterTSP);
+			dGraph.log(Globals.logStatistics, "[TIME][TSP] " + dTSP.toString());
+			return this.generateOutputFile(dGraph, dFilename);
+		}
+	}
+
 	private ArrayList<JNode> disambiguateInstances(ArrayList<InputInstance> instances) {
 		ArrayList<JNode> all = new ArrayList<JNode>();
 		for (InputInstance i : instances) {
@@ -159,7 +175,7 @@ public class JExecutor {
 	 * @param scores
 	 * @return map<cluster, sense> which has disambiguated one sense per cluster
 	 */
-	private Map<Integer, JNode> centralityDisambiguation(JGraph graph) {
+	private Map<Integer, JNode> disambiguateByCentrality(JGraph graph) {
 		
 		Map<Integer, JNode> disambiguationMap = new HashMap<Integer, JNode>();
 		// Readable results
@@ -199,6 +215,9 @@ public class JExecutor {
 	}
 
 	private String printMapToFile(Map<Integer, JNode> disambiguationMap, String fileName) {
+		if (disambiguationMap == null) {
+			return "";
+		}
 		// print Map ordered by key
 		String log = "[SENTENCE TERMS]\n";
 		synchronized (fileLock) {
@@ -253,11 +272,11 @@ public class JExecutor {
 	 * * dynamically update configuration file
 	 * Change param of TSPSolver main file to set input and output files
 	 */
-	private void setTSPSolver(String id){
+	private void setTSPSolver(String filename){
 		
 		BufferedReader oldFileReader = null;
 		BufferedWriter newFileWriter = null;
-		String mySolverName = Globals.tspSolverFileName+id;
+		String mySolverName = Globals.tspSolverFileName+filename;
 		
 		try {
 			
@@ -268,13 +287,13 @@ public class JExecutor {
 			String line;
 			while ((line = oldFileReader.readLine()) != null) {
 				if (line.contains("par=TMP")){
-					line = "par=TMP/" + id + ".pid$$.par";
+					line = "par=TMP/" + filename + ".pid$$.par";
 				}
 				if (line.contains("PROBLEM_FILE")){
-					line = "echo \"PROBLEM_FILE = " + Globals.GTSPLIBDirectory + Globals.fileName+id+".gtsp\" > $par";
+					line = "echo \"PROBLEM_FILE = " + Globals.GTSPLIBDirectory + filename +".gtsp\" > $par";
 				}
 				if (line.contains("OUTPUT_TOUR_FILE")){
-					line = "echo \"OUTPUT_TOUR_FILE = " + Globals.GTOURSDirectory + Globals.fileName+id+".tour\" >> $par";
+					line = "echo \"OUTPUT_TOUR_FILE = " + Globals.GTOURSDirectory + filename +".tour\" >> $par";
 				}
 				if (line.contains("RUNS")) {
 					line = "echo \"RUNS = " + Globals.runs + "\" >> $par";
@@ -299,14 +318,9 @@ public class JExecutor {
 		}
 	}
 	
-
-	/**
-	 * Runs the tspSolver script. Results are saved in G-TOURS folder.
-	 * @return true if the solver completed its task, false otherwise
-	 */
-	public boolean runSolver(JGraph graph){
-		String id = graph.getSentenceId();
-		File solver = new File(Globals.tspSolverPathFileName+id);
+	public String runSolver(String filename){
+		String rt = "";
+		File solver = new File(Globals.tspSolverPathFileName+filename);
 		if (solver.exists()) {
 			try{
 				//Set permissions
@@ -320,7 +334,7 @@ public class JExecutor {
 				solver.setReadable(true);
 				solver.setWritable(true);
 				//command to execute the solver
-				ProcessBuilder process = new ProcessBuilder("./" + Globals.tspSolverFileName+id);
+				ProcessBuilder process = new ProcessBuilder("./" + Globals.tspSolverFileName+filename);
 				process.directory(new File(Globals.tspSolverHomeDir));
 
 				Process p = process.start();
@@ -329,21 +343,22 @@ public class JExecutor {
 				String errorStream = this.getProcessOutput(is);
 				String output = this.getProcessOutput(p.getInputStream());
 
-				if (errorStream.length() > 1)
-					graph.log(Globals.logWarning, errorStream);
-				//if verbose mode is on, prints tsp solver output and errors
+				if (errorStream.length() > 1) {
+					rt.concat(errorStream);
+				}
 				if(Globals.solverVerbosity){
-					graph.log(Globals.logInfo, output);
-				}	
-				return true;
+					rt.concat(output);
+				}
 			}catch (IOException e) {
 				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 				System.err.println(e);	
 			}
         } else {
-            graph.log(Globals.logSevere, "Solver file does not exist");
+            rt.concat("Solver file does not exist");
+            System.out.println("Solver file does not exist");
+            System.exit(1);
         }
-		return false;
+		return rt;
 	}
 
 	
@@ -372,8 +387,7 @@ public class JExecutor {
 	 * Add nodes and edges to the graph by DFSing WordNet graph 
 	 * @param centralityGraph
 	 */
-	private void addDFSNodes(JGraph centralityGraph) {
-		int nodesDepth = Globals.nodesDepth;
+	private void addDFSNodes(JGraph centralityGraph, int depth) {
 		Set<JNode> nodes = centralityGraph.vertexSet();
 		Map<IWord, JNode> wordMap = new ConcurrentHashMap<IWord, JNode>();
 		Map<IWord, JNode> originalWordMap = new ConcurrentHashMap<IWord, JNode>();
@@ -387,7 +401,7 @@ public class JExecutor {
 		
 		for (JNode node : originalWordMap.values()) {
 			Stack<IWord> path = new Stack<IWord>();
-			this.computeDFS(centralityGraph, nodesDepth, originalWordMap, wordMap, path, node, node.getWord());
+			this.computeDFS(centralityGraph, depth, originalWordMap, wordMap, path, node, node.getWord());
 		}		
 	}
 
@@ -483,8 +497,8 @@ public class JExecutor {
 		}
 	}
 
-	private Map<JNode, Double> computeCentrality(JGraph centralityGraph) {
-		switch (Globals.computeCentrality) {
+	private Map<JNode, Double> computeCentrality(JGraph centralityGraph, String currentCentrality) {
+		switch (currentCentrality) {
 			case Globals.kppBellmanFordCentrality: 
 				//this.computeKppBellmanFordCentrality(centralityGraph);
 			case Globals.closenessCentrality:
@@ -543,11 +557,11 @@ public class JExecutor {
 	 * for each word of the sentence
 	 * @param graph
 	 */
-	private void generateOutputFile(JGraph graph){
+	private Map<Integer, JNode> generateOutputFile(JGraph graph, String filename){
 		try {
 			//open reader for the tspSolver output file
 			BufferedReader tourFileReader = new BufferedReader(
-					new FileReader(Globals.tspSolverPathToGTOURS+Globals.fileName+graph.getSentenceId()+".tour"));
+					new FileReader(Globals.tspSolverPathToGTOURS+filename+".tour"));
 			
 			Map<Integer, JNode> disambiguationMap = new HashMap<Integer, JNode>();
 			String line;
@@ -578,11 +592,11 @@ public class JExecutor {
 			
 			tourFileReader.close();
 			//open writer to write results
-			graph.log(Globals.logStatistics, this.printMapToFile(disambiguationMap, Globals.fileName));
-
+			return disambiguationMap;
 		} catch (IOException e){
 			System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 			System.err.println(e);
-		}		
+		}
+		return null;
 	}
 }

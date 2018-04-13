@@ -46,7 +46,7 @@ public class JGraph extends SimpleWeightedGraph<JNode, DefaultWeightedEdge> {
 		} else if (severity ==  Globals.logSevere) {
 			this.log += log + "\n";
 			System.out.println(log);
-			this.logOnFile();
+			this.logOnFile(this.getSentenceId());
 			System.exit(1);
 		} else if (severity == Globals.logStatistics) {
 			this.log += log + "\n";
@@ -62,10 +62,10 @@ public class JGraph extends SimpleWeightedGraph<JNode, DefaultWeightedEdge> {
 	/**
 	 * Logs log content to file
 	 */
-	public void logOnFile() {
+	public void logOnFile(String filename) {
 		if (this.log.length() > 0) {
 			try {
-				FileWriter logFile = new FileWriter(Globals.logsPath + this.getSentenceId() + ".log");
+				FileWriter logFile = new FileWriter(Globals.logsPath + filename + ".log");
 				logFile.write(this.log);
 				logFile.close();
 			} catch (IOException e) {
@@ -228,11 +228,17 @@ public class JGraph extends SimpleWeightedGraph<JNode, DefaultWeightedEdge> {
 		return array;
 	}
 
-	public void printCentrality() {
+	public String printCentrality() {
+		String str = "";
 		ArrayList<JNode> array = this.getVertexArray();
 		for (JNode n : array) {
-			System.out.println(n.getSenseKey() + " " + n.getSentenceIndex() + " " + n.getCentrality());
+			str += n.getSenseKey() + " " + n.getSentenceIndex() + " " + n.getCentrality() + "\n";
 		}
-		System.out.println();
+		str += "\n";
+		return str;
+	}
+
+	public void resetLog() {
+		this.log = "";
 	}
 }

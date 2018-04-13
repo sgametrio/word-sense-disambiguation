@@ -30,10 +30,19 @@ public class Globals {
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
-	public static final String currentDataset = All;
-	public static int nodesDepth = 3;	
+	public static final String currentDataset = MiniSenseval3;
+	public static int nodesDepth = 4;
+	public static int minDepth = 2;
+	public static int maxDepth = 4;
 	// Current centrality method
-	public static final String computeCentrality = degreeCentrality;
+	public static final String computeCentrality = closenessCentrality;
+	public static final String[] centralities = { 
+		closenessCentrality,
+		eigenvectorCentrality,
+		pageRankCentrality,
+		degreeCentrality
+	};
+	                                           
 	
 	public static final String resultsFile = resultsPath + currentDataset + resultsExt;
 	
@@ -44,7 +53,7 @@ public class Globals {
 	public static boolean saveGml = false;
 	public static boolean solverVerbosity = false;
 	// true if you want to use solver to disambiguate, false if you want to disambiguate by centrality
-	public static boolean runSolver = false;
+	public static boolean runSolver = true;
 	public static boolean developmentLogs = true;
 	public static boolean evaluation = true;
 	// true if you want to compute node centrality and distribute it on edges

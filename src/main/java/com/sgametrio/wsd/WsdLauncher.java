@@ -82,10 +82,9 @@ public class WsdLauncher {
 			while (!executor.isTerminated());
 			System.out.println("Finished results");
 
-			String results = Globals.resultsPath+Globals.fileName+Globals.resultsExt;	
 			// Remember to close dictionary
 			ex.closeDictionary();
-			launchEvaluator(Globals.currentGoldFile, results);
+			launchManyEvaluator(Globals.currentGoldFile);
 		} catch (Exception e) {
 			// Remember to close dictionary
 			ex.closeDictionary();
@@ -96,21 +95,36 @@ public class WsdLauncher {
 		System.out.println("Time executed: " + Duration.between(before, after));
 	}
 	
+	private static void launchManyEvaluator(String currentgoldfile) {
+		for (int depth = Globals.minDepth; depth <= Globals.maxDepth; depth++) {
+			for (String currentCentrality : Globals.centralities) {
+				String filename = Globals.currentDataset + "_" + currentCentrality + "_" + depth;
+				 
+				String evalCFilename = filename + "_by-centrality";
+				String evalDFilename = filename + "_run-solver";
+
+				launchEvaluator(currentgoldfile, evalCFilename);
+				launchEvaluator(currentgoldfile, evalDFilename);
+			}
+		}
+	}
+
+
 	/**
 	 * Execute Navigli's evaluation script
 	 * @param goldStandardPathToFile
 	 * @param resultsPathToFile
 	 */
 	public static void launchEvaluator(String goldStandardPathToFile, String resultsPathToFile){
-		String[] goldAndRes = {goldStandardPathToFile, resultsPathToFile};
+		String[] goldAndRes = {goldStandardPathToFile, Globals.resultsPath + resultsPathToFile+Globals.resultsExt};
 		ExtendedScorer extended_scorer = new ExtendedScorer();
+		extended_scorer.doEvaluation(goldStandardPathToFile, resultsPathToFile);
 		try {
 			Scorer.main(goldAndRes);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		extended_scorer.doEvaluation(goldStandardPathToFile, resultsPathToFile);
 	}
 	
 	/**
@@ -157,9 +171,9 @@ public class WsdLauncher {
 		if (!results.exists()) {
 			results.mkdirs();
 		} else {
-			// delete old results file
-			File old = new File(Globals.resultsPath+Globals.fileName+Globals.resultsExt);
-			old.delete();
+			for(File file: results.listFiles()){
+				file.delete();
+			}
 		}
 	}
 }

@@ -23,7 +23,8 @@ public class Scorer {
 			System.out.println("Ciao mamma");
 			exit();
 		}
-
+		System.out.println(args[0]);
+		System.out.println(args[1]);
 		// Load gold standard and system annotations.
 		File gs = new File(args[0]);
 		if (!gs.exists()) exit();

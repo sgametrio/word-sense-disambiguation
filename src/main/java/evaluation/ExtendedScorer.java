@@ -27,9 +27,10 @@ public class ExtendedScorer extends Scorer {
 		File gold = new File(goldFile);
 		if (!gold.exists()) 
 			exit("Gold file not found at " + goldFile);
-		File evaluation = new File(evaluationFile);
+		String correctEvaluationPath = Globals.resultsPath + evaluationFile + Globals.resultsExt;
+		File evaluation = new File(correctEvaluationPath);
 		if (!evaluation.exists()) 
-			exit("Evaluation file not found at " + evaluationFile);
+			exit("Evaluation file not found at " + correctEvaluationPath);
 		String report = "";
 		Map<String, Map<String, ArrayList<String>>> goldMap = readFileToMap(gold);
 		Map<String, Map<String, ArrayList<String>>> evalMap = readFileToMap(evaluation);
@@ -62,7 +63,7 @@ public class ExtendedScorer extends Scorer {
 				continue;
 			BufferedReader log;
 			try {
-				log = new BufferedReader(new FileReader(Globals.logsPath + sentence_id + ".log"));
+				log = new BufferedReader(new FileReader(Globals.logsPath + evaluationFile + "_" + sentence_id + ".log"));
 				String line = "";
 				while ((line = log.readLine()) != null) {
 					if (line.contains("[SENTENCE TERMS]")) {
@@ -155,11 +156,7 @@ public class ExtendedScorer extends Scorer {
 			}
 		}
 		// Report results by dataset
-		report += "-- report on dataset " + Globals.currentDataset + " --\n"
-				+ "centrality => " + Globals.computeCentrality + "\n"
-				+ "auxiliary node depth => " + Globals.nodesDepth + "\n"
-				+ "run solver => " + Globals.runSolver + "\n"
-				+ "\n";
+		report += evaluationFile + "";
 		report += "-- statistics  by dataset --\n"
 				+ "total terms disambiguated => " + evalTerms + "\n"
 				+ "gold terms => " + goldTerms + "\n"
@@ -174,7 +171,7 @@ public class ExtendedScorer extends Scorer {
 				+ "\n";
 		System.out.println(report);
 		try {
-			FileWriter reportFile = new FileWriter(Globals.logsPath + "report.txt");
+			FileWriter reportFile = new FileWriter(Globals.logsPath + "report.txt", true);
 			reportFile.write(report);
 			reportFile.close();
 		} catch (Exception e) {
