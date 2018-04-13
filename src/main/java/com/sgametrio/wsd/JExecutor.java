@@ -30,7 +30,7 @@ import java.util.Stack;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
-import additional.ClosenessCentrality;
+import additional.KppClosenessCentrality;
 import dk.aaue.sna.alg.centrality.EigenvectorCentrality;
 
 import org.jgrapht.alg.scoring.PageRank;
@@ -85,11 +85,12 @@ public class JExecutor {
 		this.addDFSNodes(cGraph);
 		// Use centrality to disambiguate senses
 		Map<JNode, Double> scores = this.computeCentrality(cGraph);
+		//dGraph.printCentrality();
 		// Distribute centralities on edges
 		this.createEdgesByCentrality(dGraph);
-		cGraph.exportCustomGml(Globals.gmlPath + Globals.fileName + dGraph.getSentenceId() + "_centrality.gml");
+		cGraph.exportCustomGml(Globals.gmlPath + Globals.fileName + cGraph.getSentenceId() + "_centrality.gml");
 		if (!Globals.runSolver) {
-			Map<Integer, JNode> map = this.centralityDisambiguation(scores);
+			Map<Integer, JNode> map = this.centralityDisambiguation(cGraph);
 			cGraph.log(Globals.logStatistics, this.printMapToFile(map, Globals.fileName));
 		} else {
 			if (dGraph.vertexSet().size() == 0) {
@@ -152,18 +153,20 @@ public class JExecutor {
 	 * @param scores
 	 * @return map<cluster, sense> which has disambiguated one sense per cluster
 	 */
-	private Map<Integer, JNode> centralityDisambiguation(Map<JNode, Double> scores) {
+	private Map<Integer, JNode> centralityDisambiguation(JGraph graph) {
+		
 		Map<Integer, JNode> disambiguationMap = new HashMap<Integer, JNode>();
 		// Readable results
-		for (JNode v : scores.keySet()) {
+		ArrayList<JNode> array = graph.getVertexArray();
+		for (JNode v : graph.getVertexArray()) {
 			int sentenceIndex = v.getSentenceIndex();
 			if (sentenceIndex < 0)
 				continue;
-			double centrality = scores.get(v);
+			double centrality = v.getCentrality();
 			// per ogni sentence index devo scegliere uno e un solo nodo
 			// Se la map contiene un nodo, lo sostituisco solo se ha maggiore centralità
 			if (disambiguationMap.containsKey(sentenceIndex)) {
-				if (scores.get(disambiguationMap.get(sentenceIndex)) < centrality) {
+				if (disambiguationMap.get(sentenceIndex).getCentrality() < centrality) {
 					disambiguationMap.replace(sentenceIndex, v);
 				}
 			} else {
@@ -478,14 +481,14 @@ public class JExecutor {
 		switch (Globals.computeCentrality) {
 			case Globals.kppBellmanFordCentrality: 
 				//this.computeKppBellmanFordCentrality(centralityGraph);
-			case Globals.kppCentrality:
-				//this.computeKppSingleEdgeCentrality(centralityGraph);
+			case Globals.closenessCentrality:
+				return this.computeKppClosenessCentrality(centralityGraph);
 			case Globals.pageRankCentrality:
 				return this.computeIterativePageRankCentrality(centralityGraph);
 			case Globals.inDegreeCentrality:
 				//this.computeInDegreeCentrality(centralityGraph);
-			case Globals.closenessCentrality:
-				return this.computeClosenessCentrality(centralityGraph);
+			//case Globals.closenessCentrality:
+				//return this.computeClosenessCentrality(centralityGraph);
 			case Globals.eigenvectorCentrality:
 				return this.computeEigenvectorCentrality(centralityGraph);
 			default:
@@ -509,15 +512,9 @@ public class JExecutor {
 		return scores;
 	}
 
-	/**
-	 * Seems to not work (give 0.0 to all)
-	 * @param graph
-	 * @return
-	 */
-	private Map<JNode, Double> computeClosenessCentrality(JGraph graph) {
-		ClosenessCentrality<JNode, DefaultWeightedEdge> cc = new ClosenessCentrality<JNode, DefaultWeightedEdge>(graph);
-		cc.compute();
-		Map<JNode, Double> scores = cc.getScores();
+	private Map<JNode, Double> computeKppClosenessCentrality(JGraph graph) {
+		KppClosenessCentrality<JNode, DefaultWeightedEdge> kc = new KppClosenessCentrality<JNode, DefaultWeightedEdge>(graph);
+		Map<JNode, Double> scores = kc.calculate().getRaw();
 		this.assignScores(graph, scores);
 		return scores;
 	}
@@ -534,7 +531,6 @@ public class JExecutor {
 	 * @param graph
 	 */
 	private void generateOutputFile(JGraph graph){
-		synchronized (fileLock) {
 			try {
 				//open reader for the tspSolver output file
 				BufferedReader tourFileReader = new BufferedReader(
@@ -574,8 +570,6 @@ public class JExecutor {
 			} catch (IOException e){
 				System.err.print(Thread.currentThread().getStackTrace()[1].getMethodName()+" threw: ");
 				System.err.println(e);
-			}
-		}
-		
+			}		
 	}
 }

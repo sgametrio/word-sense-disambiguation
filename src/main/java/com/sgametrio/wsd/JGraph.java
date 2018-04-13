@@ -136,7 +136,7 @@ public class JGraph extends SimpleWeightedGraph<JNode, DefaultWeightedEdge> {
 	}
 
 	public JNode getFirstVertex() {
-		return (JNode)this.vertexSet().toArray()[0];
+		return this.getVertexArray().get(0);
 	}
 
 	public boolean saveToGTSP(String path, String filename) {
@@ -228,4 +228,11 @@ public class JGraph extends SimpleWeightedGraph<JNode, DefaultWeightedEdge> {
 		return array;
 	}
 
+	public void printCentrality() {
+		ArrayList<JNode> array = this.getVertexArray();
+		for (JNode n : array) {
+			System.out.println(n.getSenseKey() + " " + n.getSentenceIndex() + " " + n.getCentrality());
+		}
+		System.out.println();
+	}
 }

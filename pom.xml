@@ -36,12 +36,12 @@
     <dependency>
     	<groupId>org.jgrapht</groupId>
     	<artifactId>jgrapht-core</artifactId>
-    	<version>1.1.0</version>
+    	<version>1.1.1-SNAPSHOT</version>
     </dependency>
     <dependency>
     	<groupId>org.jgrapht</groupId>
     	<artifactId>jgrapht-io</artifactId>
-    	<version>1.1.0</version>
+    	<version>1.1.1-SNAPSHOT</version>
     </dependency>
     <dependency>
     	<groupId>edu.mit</groupId>
@@ -59,6 +59,17 @@
 		    <id>conjars.org</id>
 		    <url>http://conjars.org/repo</url>
 		</repository>
+		<repository>
+	      <id>maven-snapshots</id>
+	      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+	      <layout>default</layout>
+	      <releases>
+	        <enabled>false</enabled>
+	      </releases>
+	      <snapshots>
+	        <enabled>true</enabled>
+	      </snapshots>
+	    </repository>
 	</repositories>
 	<build>
 		<resources>

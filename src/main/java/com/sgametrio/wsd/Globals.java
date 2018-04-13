@@ -26,25 +26,25 @@ public class Globals {
 	public static final String allCentrality = "all";
 	public static final String kppBellmanFordCentrality = "bellman-ford";
 	public static final String closenessCentrality = "closeness";
-	public static final String eigenvectorCentrality = "eigenvector";
+	public static final String eigenvectorCentrality = "eigenvector"; // not deterministic
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
 	public static final String currentDataset = All;
 	public static int nodesDepth = 4;	
 	// Current centrality method
-	public static final String computeCentrality = pageRankCentrality;
+	public static final String computeCentrality = closenessCentrality;
 	
 	public static final String resultsFile = resultsPath + currentDataset + resultsExt;
 	
 	// Current tree
 	public static final String treeKernelType = "subTree"; //subTree, subsetTree, partialTree, smoothedPartialTree
-	public static final int precision = 1000;
+	public static final int precision = 10000;
 	/*** Execution parameters ***/
 	public static boolean saveGml = false;
 	public static boolean solverVerbosity = false;
 	// true if you want to use solver to disambiguate, false if you want to disambiguate by centrality
-	public static boolean runSolver = true;
+	public static boolean runSolver = false;
 	public static boolean developmentLogs = true;
 	public static boolean evaluation = true;
 	// true if you want to compute node centrality and distribute it on edges
