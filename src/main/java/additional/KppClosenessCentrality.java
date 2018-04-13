@@ -36,6 +36,7 @@ public class KppClosenessCentrality<V, E> implements CentralityMeasure<V> {
 	public CentralityResult<V> calculate() {
 		Map<V, Double> cc = new HashMap<V, Double>();
 		Set<V> V = graph.vertexSet();
+		int size = V.size();
 		for (V u : V) {
 			double sum = 0.0;
 			for (V v : V) {
@@ -50,9 +51,9 @@ public class KppClosenessCentrality<V, E> implements CentralityMeasure<V> {
 				if (Double.isInfinite(length))
                     sum += 0.0;
                 else
-                    sum += 1.0 / length;
+                    sum += 1.0 / Math.pow(2, length);
 			}
-            cc.put(u, sum);
+            cc.put(u, (double)sum / size);
 		}
         return new CentralityResult<V>(cc, true);
 	}
