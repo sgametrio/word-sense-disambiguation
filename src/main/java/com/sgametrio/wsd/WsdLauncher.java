@@ -11,6 +11,7 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -27,6 +28,7 @@ import evaluation.InputSentence;
 import evaluation.Scorer;
 
 public class WsdLauncher {
+	static CountDownLatch doneSignal = null;
 	
 	public static void main(String a[]){
 		launchDisambiguationEvaluation();
@@ -67,21 +69,25 @@ public class WsdLauncher {
 			doc.getDocumentElement().normalize();
 			//get all sentences in xml file
 			NodeList allSentences = doc.getElementsByTagName("sentence");
-					
+			int sentences = allSentences.getLength();
+			doneSignal = new CountDownLatch(sentences);
 			// Create thread pool
 			ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());			
 			//iterate over all sentences and send them to inputExtractor to be processed
 			for (int sentIndex = 0; sentIndex < allSentences.getLength(); sentIndex++) {
 				Node sentence = allSentences.item(sentIndex);
 				InputSentence iSentence = InputExtractor.myExtractInput(sentence);
-				SentenceRunner runner = new SentenceRunner(ex, iSentence);
+				SentenceRunner runner = new SentenceRunner(ex, iSentence, doneSignal);
 			    executor.execute(runner);
 			}
 			
 			// Start evaluation only when all thread are finished
 			executor.shutdown();
 			// wait until all are finished
-			while (!executor.isTerminated());
+			doneSignal.await();
+			while (!executor.isTerminated()) {
+				System.out.println("Waiting");				
+			}
 			System.out.println("Finished results");
 
 			// Remember to close dictionary
