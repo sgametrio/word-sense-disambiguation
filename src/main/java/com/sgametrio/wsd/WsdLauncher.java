@@ -81,8 +81,7 @@ public class WsdLauncher {
 			// Start evaluation only when all thread are finished
 			executor.shutdown();
 			// wait until all are finished
-			while (!executor.isTerminated())
-				Thread.currentThread().sleep(1000);;
+			while (!executor.isTerminated());
 			System.out.println("Finished results");
 
 			// Remember to close dictionary
