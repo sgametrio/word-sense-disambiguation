@@ -23,6 +23,12 @@ public class ExtendedScorer extends Scorer {
 	WordnetAdapter wordnet = null;
 	
 	public void doEvaluation(String goldFile, String evaluationFile) {
+		// Retrieve info by file name
+		String run [] = evaluationFile.split("_");
+		String dataset = run[0];
+		String centralityMeasure = run[1];
+		String maxDepth = run[2];
+		String disambiguation = run[3];
 		// Read files and generate something cool
 		File gold = new File(goldFile);
 		if (!gold.exists()) 
@@ -141,14 +147,10 @@ public class ExtendedScorer extends Scorer {
 					} else if (line.contains("[FINISHED]")) {
 						String time = line.split(" ")[1];
 						totalTimes.add(Duration.parse(time));
+					} else if (line.contains("[SAME CENTRALITIES]")) {
+						// TODO
 					}
-				}
-				
-				// Report results by sentence
-				for (int i = 0; i < totalTimes.size(); i++) {
-					
-				}
-				// TODO: Generate report in a reusable format
+				}				
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
@@ -169,8 +171,20 @@ public class ExtendedScorer extends Scorer {
 				+ "correct most common terms zero centrality => " + zeroCentralityMostCommonCorrect + "\n"
 				+ "correct terms zero centrality => " + zeroCentralityCorrect + "\n"
 				+ "\n";
-		System.out.println(report);
+		
+		// TODO: Generate report in a reusable format
+		this.createCsvReportFile();
+		String content = "";
+		
 		try {
+			Double[] score = Scorer.score(gold, evaluation);
+
+			//String headers = "Dataset;Max path length;Centrality;Disambiguation;Accuracy\n";
+			content += dataset + ";" + maxDepth + ";" + centralityMeasure + ";" + disambiguation + ";" + String.format("%.2f", score[0]*100) + "\n";
+			
+			FileWriter fileW = new FileWriter(Globals.csvReportFile, true);
+			fileW.write(content);
+			fileW.close();
 			FileWriter reportFile = new FileWriter(Globals.logsPath + "report.txt", true);
 			reportFile.write(report);
 			reportFile.close();
@@ -180,6 +194,22 @@ public class ExtendedScorer extends Scorer {
 		
 	}
 	
+	private void createCsvReportFile() {
+		try {
+			File file = new File(Globals.csvReportFile);
+			if (!file.exists()) {
+				file.createNewFile();
+				FileWriter fileW = new FileWriter(Globals.csvReportFile, true);
+				String headers = "Dataset;Max path length;Centrality;Disambiguation;Accuracy;\n";
+				fileW.write(headers);
+				fileW.close();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+
 	/**
 	 * Helper that calls readFileExtended method to incapsulate exception handling and keep upper method cleaner
 	 * @param evaluation

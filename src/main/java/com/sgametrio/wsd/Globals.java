@@ -30,8 +30,8 @@ public class Globals {
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
-	public static final String currentDataset = MiniSenseval3;
-	public static int nodesDepth = 4;
+	public static final String currentDataset = All;
+	public static int nodesDepth = 5;
 	public static int minDepth = 2;
 	public static int maxDepth = 4;
 	// Current centrality method
@@ -92,6 +92,8 @@ public class Globals {
 	public static final int logSevere = 2;
 	
 	public static final String fileName = currentDataset;
+	
+	public static final String csvReportFile = logsPath + "report.csv";
 
 	/**
 	 * Configurable solver runs

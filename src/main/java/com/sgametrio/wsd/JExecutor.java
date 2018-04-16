@@ -34,6 +34,7 @@ import additional.KppClosenessCentrality;
 import dk.aaue.sna.alg.centrality.DegreeCentrality;
 import dk.aaue.sna.alg.centrality.EigenvectorCentrality;
 
+import org.jgrapht.GraphMapping;
 import org.jgrapht.alg.scoring.PageRank;
 import org.jgrapht.graph.DefaultWeightedEdge;
 
@@ -73,7 +74,7 @@ public class JExecutor {
 		input.instances.addAll(selectedInstances);
 		JGraph dGraph = null;
 		JGraph cGraph = null;
-		ArrayList<JNode> senses = this.disambiguateInstances(input.instances);
+		ArrayList<JNode> senses = this.getSensesFromInstances(input.instances);
 		
 		for (int depth = Globals.minDepth; depth <= Globals.maxDepth; depth++) {
 			
@@ -98,6 +99,7 @@ public class JExecutor {
 				this.computeCentrality(cGraph, currentCentrality);
 				Instant afterC = Instant.now();
 				cGraph.log(Globals.logStatistics, "[TIME][CENTRALITY][" + currentCentrality + "] " + Duration.between(beforeC, afterC));
+				dGraph.log(Globals.logStatistics, "[TIME][CENTRALITY][" + currentCentrality + "] " + Duration.between(beforeC, afterC));
 				// id representing configuration
 				String filename = Globals.currentDataset + "_" + currentCentrality + "_" + depth;
 				 
@@ -153,15 +155,15 @@ public class JExecutor {
 		}
 	}
 
-	private ArrayList<JNode> disambiguateInstances(ArrayList<InputInstance> instances) {
+	private ArrayList<JNode> getSensesFromInstances(ArrayList<InputInstance> instances) {
 		ArrayList<JNode> all = new ArrayList<JNode>();
 		for (InputInstance i : instances) {
-			all.addAll(this.disambiguateSingleInstance(i));
+			all.addAll(this.getSensesFromInstance(i));
 		}
 		return all;
 	}
 
-	private ArrayList<JNode> disambiguateSingleInstance(InputInstance input) {
+	private ArrayList<JNode> getSensesFromInstance(InputInstance input) {
 		ArrayList<JNode> senses = new ArrayList<JNode>();
 		for(IWord word : this.wordnet.getWordsList(input.lemma, input.pos)) {
 			JNode v = new JNode(word, input);
@@ -190,14 +192,42 @@ public class JExecutor {
 			if (disambiguationMap.containsKey(sentenceIndex)) {
 				if (disambiguationMap.get(sentenceIndex).getCentrality() < centrality) {
 					disambiguationMap.replace(sentenceIndex, v);
-				}
+				} 
 			} else {
 				disambiguationMap.put(sentenceIndex, v);
 			}
 		}
+		String log = this.logSameCentralitiesNodes(disambiguationMap, array);
+		graph.log(Globals.logInfo, log);
 		return disambiguationMap;
 	}
 
+
+	private String logSameCentralitiesNodes(Map<Integer, JNode> disambiguationMap, ArrayList<JNode> array) {
+		String log = "";
+		// Check if there are senses with same centrality as the one disambiguated
+		Map<Integer, Integer> sameCentrality = new HashMap<Integer, Integer>();
+		for (JNode v : array) {
+			int sentenceIndex = v.getSentenceIndex();
+			if (sentenceIndex < 0)
+				continue;
+			double centrality = v.getCentrality();
+			if (sameCentrality.containsKey(sentenceIndex)) {
+				if (disambiguationMap.get(sentenceIndex).getCentrality() == centrality) {
+					sameCentrality.replace(sentenceIndex, sameCentrality.get(sentenceIndex) + 1);
+				} 
+			} else {
+				sameCentrality.put(sentenceIndex, 0);
+			}
+		}
+		// Now log
+		for (Entry<Integer, Integer> entry : sameCentrality.entrySet()) {
+			if (entry.getValue() > 0) {
+				log += "[SAME CENTRALITIES] " + entry.getKey() + " " + entry.getValue() + " (sentence_index highest_centralities_nodes) \n";
+			}
+		}
+		return log;
+	}
 
 	public void createDir(String path) {
 		// if the directory does not exist, create it
@@ -465,14 +495,16 @@ public class JExecutor {
 					// Insert distance instead of weight here by 1 / weight (weight is in [0,1]
 					// Multiply by precision
 					double mean = JNode.mean(n1, n2);
-					if (mean == 0.0)
-						continue;
 					// Globals.precision let me lose only little info (decimal values)
 					double distance = Math.round(Globals.precision * (1 - mean));
+					if (distance == 0.0) {
+						// Centrality mean -> 1 set weight to 1
+						distance = 1;
+					}
 					DefaultWeightedEdge e = graph.addEdge(n1, n2);
 					// Edge already exists
 					if (e == null)
-						continue;
+						e = graph.getEdge(n1, n2);
 					graph.setEdgeWeight(e, distance);
 				}
 			}

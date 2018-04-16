@@ -167,7 +167,7 @@ public class JGraph extends SimpleWeightedGraph<JNode, DefaultWeightedEdge> {
 		for(int row = 0; row < size; row++){
 			for(int col = 0; col < size; col++){
 				if (matrix[row][col] <= 0) {
-					log(Globals.logSevere, "[GTSP] Edge with weight < 0");
+					log(Globals.logSevere, "[GTSP] Edge with weight < 0 : " + row + " " + col + " = " + matrix[row][col]);
 				}
 				content += matrix[row][col]+" ";
 			}

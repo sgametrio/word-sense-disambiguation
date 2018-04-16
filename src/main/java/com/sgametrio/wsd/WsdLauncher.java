@@ -1,6 +1,8 @@
 package com.sgametrio.wsd;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.Duration;
@@ -79,7 +81,8 @@ public class WsdLauncher {
 			// Start evaluation only when all thread are finished
 			executor.shutdown();
 			// wait until all are finished
-			while (!executor.isTerminated());
+			while (!executor.isTerminated())
+				Thread.currentThread().sleep(1000);;
 			System.out.println("Finished results");
 
 			// Remember to close dictionary
@@ -106,6 +109,20 @@ public class WsdLauncher {
 				launchEvaluator(currentgoldfile, evalCFilename);
 				launchEvaluator(currentgoldfile, evalDFilename);
 			}
+		}
+		printCsvReport();
+	}
+
+
+	private static void printCsvReport() {
+		try {
+			BufferedReader csv = new BufferedReader(new FileReader(Globals.csvReportFile));
+			String line = "";
+			while ((line = csv.readLine()) != null) {
+				System.out.println(line);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
