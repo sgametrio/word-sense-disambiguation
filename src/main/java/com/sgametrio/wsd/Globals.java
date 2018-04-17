@@ -33,7 +33,7 @@ public class Globals {
 	public static final String currentDataset = MiniSenseval3;
 	public static int nodesDepth = 5;
 	public static int minDepth = 2;
-	public static int maxDepth = 3;
+	public static int maxDepth = 4;
 	// Current centrality method
 	public static final String computeCentrality = closenessCentrality;
 	public static final String[] centralities = { 
@@ -59,7 +59,9 @@ public class Globals {
 	// true if you want to compute node centrality and distribute it on edges
 	public static boolean centrality = true;
 
-	public static float dampingFactor = (float)1;	
+	public static float dampingFactor = (float)1;
+
+	public static boolean useAdditionalInstances = true;	
 	
 	public static final String pathToDataset = frameworkFilePath + currentDataset + "/" + currentDataset;
 

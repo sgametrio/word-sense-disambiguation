@@ -51,7 +51,7 @@ public class KppClosenessCentrality<V, E> implements CentralityMeasure<V> {
 				if (Double.isInfinite(length))
                     sum += 0.0;
                 else
-                    sum += 1.0 / Math.pow(2, length);
+                    sum += 1.0 / length;
 			}
             cc.put(u, (double)sum / size);
 		}

@@ -20,7 +20,6 @@ public class Scorer {
 	public static void main(String[] args) throws IOException {
 		// Check command-line arguments.
 		if (args.length != 2) {
-			System.out.println("Ciao mamma");
 			exit();
 		}
 		System.out.println(args[0]);

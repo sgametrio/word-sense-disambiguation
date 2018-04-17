@@ -38,8 +38,10 @@ public class ExtendedScorer extends Scorer {
 		if (!evaluation.exists()) 
 			exit("Evaluation file not found at " + correctEvaluationPath);
 		String report = "";
-		Map<String, Map<String, ArrayList<String>>> goldMap = readFileToMap(gold);
-		Map<String, Map<String, ArrayList<String>>> evalMap = readFileToMap(evaluation);
+		Map<String, Map<String, ArrayList<String>>> goldMap = null;
+		Map<String, Map<String, ArrayList<String>>> evalMap = null;
+		goldMap = readFileToMap(gold);
+		evalMap = readFileToMap(evaluation);
 		this.wordnet = new WordnetAdapter();
 		// Global dataset statistics
 		int goldTerms = 0;
@@ -89,7 +91,7 @@ public class ExtendedScorer extends Scorer {
 							int last_dot = term_id.lastIndexOf(".");
 							String instance_id = term_id.substring(last_dot + 1);
 							String eval_sense_key = info[1];
-							float centrality = Float.parseFloat(info[2]);
+							float centrality = Float.parseFloat(info[info.length-1]);
 							// for every sense_key find most common sense (the first retrieved by wordnet
 							IWord mostCommon = this.wordnet.getMostCommonWord(eval_sense_key);
 							String senseKeyMostCommon = SenseKey.toString(mostCommon.getSenseKey());
@@ -155,6 +157,8 @@ public class ExtendedScorer extends Scorer {
 				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
 		// Report results by dataset
@@ -172,7 +176,6 @@ public class ExtendedScorer extends Scorer {
 				+ "correct terms zero centrality => " + zeroCentralityCorrect + "\n"
 				+ "\n";
 		
-		// TODO: Generate report in a reusable format
 		this.createCsvReportFile();
 		String content = "";
 		
@@ -180,7 +183,7 @@ public class ExtendedScorer extends Scorer {
 			Double[] score = Scorer.score(gold, evaluation);
 
 			//String headers = "Dataset;Max path length;Centrality;Disambiguation;Accuracy\n";
-			content += dataset + ";" + maxDepth + ";" + centralityMeasure + ";" + disambiguation + ";" + String.format("%.2f", score[0]*100) + "\n";
+			content += dataset + ";" + maxDepth + ";" + centralityMeasure + ";" + disambiguation + ";" + String.format("%.2f", score[0]*100) + ";" + String.format("%.2f", score[1]*100) + ";" + String.format("%.2f", score[2]*100) + "\n";
 			
 			FileWriter fileW = new FileWriter(Globals.csvReportFile, true);
 			fileW.write(content);
@@ -200,7 +203,7 @@ public class ExtendedScorer extends Scorer {
 			if (!file.exists()) {
 				file.createNewFile();
 				FileWriter fileW = new FileWriter(Globals.csvReportFile, true);
-				String headers = "Dataset;Max path length;Centrality;Disambiguation;Accuracy;\n";
+				String headers = "Dataset;Max path length;Centrality;Disambiguation;Precision;Recall;F-Measure\n";
 				fileW.write(headers);
 				fileW.close();
 			}

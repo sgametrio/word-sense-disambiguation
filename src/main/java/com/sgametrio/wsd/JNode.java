@@ -39,7 +39,8 @@ public class JNode {
 	}
 	
 	public static double mean(JNode n1, JNode n2) {
-		return (n1.centrality + n2.centrality) / 2;
+		double mean = (n1.centrality + n2.centrality) / 2;
+		return mean;
 	}
 	
 	public double getCentrality() {

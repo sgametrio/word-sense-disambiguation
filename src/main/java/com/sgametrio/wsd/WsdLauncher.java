@@ -85,9 +85,7 @@ public class WsdLauncher {
 			executor.shutdown();
 			// wait until all are finished
 			doneSignal.await();
-			while (!executor.isTerminated()) {
-				System.out.println("Waiting");				
-			}
+			while (!executor.isTerminated());
 			System.out.println("Finished results");
 
 			// Remember to close dictionary
@@ -137,16 +135,9 @@ public class WsdLauncher {
 	 * @param goldStandardPathToFile
 	 * @param resultsPathToFile
 	 */
-	public static void launchEvaluator(String goldStandardPathToFile, String resultsPathToFile){
-		String[] goldAndRes = {goldStandardPathToFile, Globals.resultsPath + resultsPathToFile+Globals.resultsExt};
+	public static void launchEvaluator(String goldStandardPathToFile, String resultsPathToFile) {
 		ExtendedScorer extended_scorer = new ExtendedScorer();
 		extended_scorer.doEvaluation(goldStandardPathToFile, resultsPathToFile);
-		try {
-			Scorer.main(goldAndRes);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 	
 	/**
