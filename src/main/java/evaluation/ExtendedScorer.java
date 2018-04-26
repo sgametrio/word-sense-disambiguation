@@ -9,14 +9,13 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import com.sgametrio.wsd.Globals;
 import com.sgametrio.wsd.WordnetAdapter;
 
 import edu.mit.jwi.item.IWord;
+import edu.mit.jwi.item.POS;
 import edu.mit.jwi.item.SenseKey;
 
 public class ExtendedScorer extends Scorer {
@@ -44,7 +43,7 @@ public class ExtendedScorer extends Scorer {
 		evalMap = readFileToMap(evaluation);
 		this.wordnet = new WordnetAdapter();
 		// Global dataset statistics
-		int goldTerms = 0;
+		int goldTerms = goldMap.size();
 		int goldMostCommonTerms = 0;
 		int evalTerms = 0;
 		int evalMostCommonTerms = 0;
@@ -54,6 +53,20 @@ public class ExtendedScorer extends Scorer {
 		int zeroCentralityMostCommonTerms = 0;
 		int zeroCentralityMostCommonCorrect = 0;
 		int zeroCentralityCorrect = 0;
+		int nouns = 0;
+		int verbs = 0;
+		int adj = 0;
+		int adv = 0;
+		int correctNouns = 0;
+		int correctVerbs = 0;
+		int correctAdj = 0;
+		int correctAdv = 0;
+		Map<POS, Integer> correctPOS = new HashMap<POS, Integer>();
+		Map<POS, Integer> totalPOS = new HashMap<POS, Integer>();
+		for (POS pos : POS.values()) {
+			correctPOS.put(pos, 0);
+			totalPOS.put(pos, 0);
+		}
 		// 
 		ArrayList<Duration> totalTimes = new ArrayList<Duration>();
 		ArrayList<Duration> tspTimes = new ArrayList<Duration>();
@@ -95,6 +108,7 @@ public class ExtendedScorer extends Scorer {
 							// for every sense_key find most common sense (the first retrieved by wordnet
 							IWord mostCommon = this.wordnet.getMostCommonWord(eval_sense_key);
 							String senseKeyMostCommon = SenseKey.toString(mostCommon.getSenseKey());
+							
 							String gold_sense_key = goldMap.get(sentence_id).get(instance_id).get(0);
 							boolean most_common = false;
 							boolean correct = false;
@@ -124,11 +138,16 @@ public class ExtendedScorer extends Scorer {
 									zeroCentralityCorrect++;
 								}
 							}
+							// POS type
+							POS pos = mostCommon.getPOS();
+							totalPOS.replace(pos, totalPOS.get(pos) + 1);
+							if (correct) {
+								correctPOS.replace(pos, correctPOS.get(pos) + 1);
+							}
 							sentenceTerms++;							
 						}
 						goldMostCommonTerms += sentenceGoldMostCommon;
 						evalTerms += sentenceTerms;
-						goldTerms += sentenceTerms;
 						evalMostCommonTerms += sentenceMostCommon;
 						correctDisambiguations += sentenceCorrectTerms;
 						correctEvalMostCommonTerms += sentenceCorrectMostCommon;
@@ -175,15 +194,22 @@ public class ExtendedScorer extends Scorer {
 				+ "correct most common terms zero centrality => " + zeroCentralityMostCommonCorrect + "\n"
 				+ "correct terms zero centrality => " + zeroCentralityCorrect + "\n"
 				+ "\n";
+		for (POS pos : POS.values()) {
+			String log = pos + ": total => " + totalPOS.get(pos) + " correct => " + correctPOS.get(pos) + "\n";
+			report += log;
+		}
+		String precision = "";
+		for (POS pos : POS.values()) {
+			double prec = (double) correctPOS.get(pos) / totalPOS.get(pos);
+			precision += ";" + String.format("%.2f", prec*100);
+		}
 		
 		this.createCsvReportFile();
 		String content = "";
 		
 		try {
 			Double[] score = Scorer.score(gold, evaluation);
-
-			//String headers = "Dataset;Max path length;Centrality;Disambiguation;Accuracy\n";
-			content += dataset + ";" + maxDepth + ";" + centralityMeasure + ";" + disambiguation + ";" + String.format("%.2f", score[0]*100) + ";" + String.format("%.2f", score[1]*100) + ";" + String.format("%.2f", score[2]*100) + "\n";
+			content += dataset + ";" + maxDepth + ";" + centralityMeasure + ";" + disambiguation + ";" + String.format("%.2f", score[0]*100) + ";" + String.format("%.2f", score[1]*100) + ";" + String.format("%.2f", score[2]*100) + precision + "\n";
 			
 			FileWriter fileW = new FileWriter(Globals.csvReportFile, true);
 			fileW.write(content);
@@ -203,7 +229,12 @@ public class ExtendedScorer extends Scorer {
 			if (!file.exists()) {
 				file.createNewFile();
 				FileWriter fileW = new FileWriter(Globals.csvReportFile, true);
-				String headers = "Dataset;Max path length;Centrality;Disambiguation;Precision;Recall;F-Measure\n";
+				String headers = "Dataset;Max path length;Centrality;Disambiguation;Precision;Recall;F-Measure";
+				String posHeaders = "";
+				for (POS pos : POS.values()) {
+					posHeaders +=  ";" + pos;
+				}
+				headers += posHeaders + "\n";
 				fileW.write(headers);
 				fileW.close();
 			}

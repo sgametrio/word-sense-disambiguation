@@ -1,7 +1,5 @@
 package com.sgametrio.wsd;
 
-
-import edu.mit.jwi.data.parse.SenseKeyParser;
 import edu.mit.jwi.item.IWord;
 import evaluation.InputInstance;
 

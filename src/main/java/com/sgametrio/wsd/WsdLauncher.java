@@ -3,14 +3,8 @@ package com.sgametrio.wsd;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -25,7 +19,6 @@ import org.w3c.dom.NodeList;
 import evaluation.ExtendedScorer;
 import evaluation.InputExtractor;
 import evaluation.InputSentence;
-import evaluation.Scorer;
 
 public class WsdLauncher {
 	static CountDownLatch doneSignal = null;
@@ -124,6 +117,7 @@ public class WsdLauncher {
 			while ((line = csv.readLine()) != null) {
 				System.out.println(line);
 			}
+			csv.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

@@ -7,7 +7,6 @@ package com.sgametrio.wsd;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.attribute.PosixFilePermission;
@@ -19,7 +18,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.file.*;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -34,7 +32,6 @@ import additional.KppClosenessCentrality;
 import dk.aaue.sna.alg.centrality.DegreeCentrality;
 import dk.aaue.sna.alg.centrality.EigenvectorCentrality;
 
-import org.jgrapht.GraphMapping;
 import org.jgrapht.alg.scoring.PageRank;
 import org.jgrapht.graph.DefaultWeightedEdge;
 

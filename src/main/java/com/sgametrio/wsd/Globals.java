@@ -30,7 +30,7 @@ public class Globals {
 	/**
 	 *  Change this if you want to change current evaluation dataset
 	 */
-	public static final String currentDataset = MiniSenseval3;
+	public static final String currentDataset = All;
 	public static int nodesDepth = 5;
 	public static int minDepth = 2;
 	public static int maxDepth = 4;

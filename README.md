@@ -13,7 +13,10 @@ Use vertex centrality measures to disambiguate senses of a word.
 * Tries:
 	* Don't create edges between distant words in a sentence, maybe a single sentence is composed by multiple, separate, logical sentences
 	* Work on all relationships or weight differently the relationships by words
-	* Work on including more disambiguation words that aren't instances but maybe are useful for disambiguation like <wf different types>
+	* Work on SemCor3
+	* Separate results based on NOUNS, VERBS ADJ etc..
+	* Try with GLNS solver in fast mode and compare
+	* 
 
 * // Move all filesystem resources stream to getResourceAsAStream
 
