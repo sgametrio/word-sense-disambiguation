@@ -17,7 +17,7 @@ public class JNode {
 	}
 	
 	/**
-	 * Constructor for auxiliary nodes (sentence index = -1)
+	 * Constructor for auxiliary nodes (sentence index == -1)
 	 * @param word
 	 */
 	public JNode(IWord word) {

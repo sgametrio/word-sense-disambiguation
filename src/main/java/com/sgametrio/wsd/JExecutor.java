@@ -117,7 +117,7 @@ public class JExecutor {
 				//cGraph.log(Globals.logInfo, dGraph.printCentrality());
 				
 				// Disambiguation by centrality
-				Map<Integer, JNode> mapC = this.disambiguateByCentrality(cGraph);
+				Map<Integer, JNode> mapC = this.disambiguateByCentrality(cGraph, dGraph);
 				cGraph.log(Globals.logStatistics, this.printMapToFile(mapC, evalCFilename));
 				
 				// Disambiguation by TSP
@@ -183,7 +183,7 @@ public class JExecutor {
 	 * @param scores
 	 * @return map<cluster, sense> which has disambiguated one sense per cluster
 	 */
-	private Map<Integer, JNode> disambiguateByCentrality(JGraph graph) {
+	private Map<Integer, JNode> disambiguateByCentrality(JGraph graph, JGraph graphD) {
 		
 		Map<Integer, JNode> disambiguationMap = new HashMap<Integer, JNode>();
 		// Readable results
@@ -205,87 +205,38 @@ public class JExecutor {
 		}
 		String log = this.logSameCentralitiesNodes(disambiguationMap, array);
 		graph.log(Globals.logInfo, log);
+		graphD.log(Globals.logInfo, log);
 		return disambiguationMap;
 	}
-	
-	/**
-	 * From scores to disambiguation
-	 * @param scores
-	 * @return map<cluster, sense> which has disambiguated one sense per cluster
-	 */
-	/*private Map<Integer, ArrayList<JNode>> disambiguateByCentralityArray(JGraph graph) {
-		
-		Map<Integer, ArrayList<JNode>> disambiguationMap = new HashMap<Integer, ArrayList<JNode>>();
-		// Readable results
-		ArrayList<JNode> array = graph.getVertexArray();
-		for (JNode v : array) {
-			int sentenceIndex = v.getSentenceIndex();
-			if (sentenceIndex < 0)
-				continue;
-			double centrality = v.getCentrality();
-			// per ogni sentence index devo scegliere uno e un solo nodo
-			// Se la map contiene un nodo, lo sostituisco solo se ha maggiore centralità
-			if (disambiguationMap.containsKey(sentenceIndex)) {
-				if (disambiguationMap.get(sentenceIndex).get(0).getCentrality() < centrality) {
-					array = new ArrayList<JNode>();
-					array.add(v);
-					disambiguationMap.replace(sentenceIndex, array);
-				} else if (disambiguationMap.get(sentenceIndex).get(0).getCentrality() == centrality) {
-					disambiguationMap.get(sentenceIndex).add(v);
-				}
-			} else {
-				array = new ArrayList<JNode>();
-				array.add(v);
-				disambiguationMap.put(sentenceIndex, array);
-			}
-		}
-		String log = this.logSameCentralitiesNodesArray(disambiguationMap, array);
-		graph.log(Globals.logInfo, log);
-		return disambiguationMap;
-	}*/
-
 
 	private String logSameCentralitiesNodes(Map<Integer, JNode> disambiguationMap, ArrayList<JNode> array) {
 		String log = "";
 		// Check if there are senses with same centrality as the one disambiguated
-		Map<Integer, Integer> sameCentrality = new HashMap<Integer, Integer>();
+		Map<String, Integer> sameCentrality = new HashMap<String, Integer>();
 		for (JNode v : array) {
 			int sentenceIndex = v.getSentenceIndex();
+			String termId = v.getTermId();
 			if (sentenceIndex < 0)
 				continue;
+			if (termId == null)
+				continue;
 			double centrality = v.getCentrality();
-			if (sameCentrality.containsKey(sentenceIndex)) {
+			if (sameCentrality.containsKey(termId)) {
 				if (disambiguationMap.get(sentenceIndex).getCentrality() == centrality) {
-					sameCentrality.replace(sentenceIndex, sameCentrality.get(sentenceIndex) + 1);
+					sameCentrality.replace(termId, sameCentrality.get(termId) + 1);
 				} 
 			} else {
-				sameCentrality.put(sentenceIndex, 0);
+				sameCentrality.put(termId, 1);
 			}
 		}
 		// Now log
-		for (Entry<Integer, Integer> entry : sameCentrality.entrySet()) {
-			if (entry.getValue() > 0) {
+		for (Entry<String, Integer> entry : sameCentrality.entrySet()) {
+			if (entry.getValue() > 1) {
 				log += "[SAME CENTRALITIES] " + entry.getKey() + " " + entry.getValue() + " (sentence_index highest_centralities_nodes) \n";
 			}
 		}
 		return log;
 	}
-	
-	/*private String logSameCentralitiesNodesArray(Map<Integer, ArrayList<JNode>> disambiguationMap, ArrayList<JNode> array) {
-		String log = "";
-		// Check if there are senses with same centrality as the one disambiguated
-		Map<Integer, Integer> sameCentrality = new HashMap<Integer, Integer>();
-		for (Entry<Integer, ArrayList<JNode>> entry : disambiguationMap.entrySet()) {
-			sameCentrality.put(entry.getKey(), entry.getValue().size() - 1);
-		}
-		// Now log
-		for (Entry<Integer, Integer> entry : sameCentrality.entrySet()) {
-			if (entry.getValue() > 0) {
-				log += "[SAME CENTRALITIES] " + entry.getKey() + " " + entry.getValue() + " (sentence_index highest_centralities_nodes) \n";
-			}
-		}
-		return log;
-	}*/
 
 	public void createDir(String path) {
 		// if the directory does not exist, create it
@@ -330,44 +281,6 @@ public class JExecutor {
 		}
 		return log;
 	}
-	
-	/*private String printArrayToFile(Map<Integer, ArrayList<JNode>> disambiguationMap, String fileName) {
-		if (disambiguationMap == null) {
-			return "";
-		}
-		// print Map ordered by key
-		String log = "[SENTENCE TERMS]\n";
-		synchronized (fileLock) {
-			String fileContent = "";
-			try {
-				PrintWriter keyFileWriter;
-				keyFileWriter = new PrintWriter(new FileWriter(Globals.resultsPath + fileName +Globals.resultsExt, true));
-				//sort word by their position in the text
-				SortedSet<Integer> keys = new TreeSet<>(disambiguationMap.keySet());
-				for (Integer key : keys) { 
-					ArrayList<JNode> v = disambiguationMap.get(key);
-					if (v.size() > 0) {
-						String term = v.get(0).getTermId();
-						if (term != null) {
-							log += term;
-							fileContent += term;
-							for (JNode vv : v) {
-								log += " " + vv.getSenseKey();
-								fileContent += " " + vv.getSenseKey();
-							}
-							fileContent += "\n";
-							log += " " + v.get(0).getCentrality() + "\n"; 
-						}
-					}
-				}
-				keyFileWriter.write(fileContent);
-				keyFileWriter.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		return log;
-	}*/
 
 	/**
 	 * Eliminate the words having POS not specified in posTags variable

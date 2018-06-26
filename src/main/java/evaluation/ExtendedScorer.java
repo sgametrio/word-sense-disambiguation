@@ -53,6 +53,8 @@ public class ExtendedScorer extends Scorer {
 		int zeroCentralityMostCommonTerms = 0;
 		int zeroCentralityMostCommonCorrect = 0;
 		int zeroCentralityCorrect = 0;
+		int sameCentralityMostCommon = 0;
+		int sameCentralityDisambiguation = 0;
 		int nouns = 0;
 		int verbs = 0;
 		int adj = 0;
@@ -63,6 +65,7 @@ public class ExtendedScorer extends Scorer {
 		int correctAdv = 0;
 		Map<POS, Integer> correctPOS = new HashMap<POS, Integer>();
 		Map<POS, Integer> totalPOS = new HashMap<POS, Integer>();
+
 		for (POS pos : POS.values()) {
 			correctPOS.put(pos, 0);
 			totalPOS.put(pos, 0);
@@ -75,6 +78,7 @@ public class ExtendedScorer extends Scorer {
 		ArrayList<Float> correctMostCommonPrecision = new ArrayList<Float>();
 		ArrayList<Float> zeroCentralityPrecision = new ArrayList<Float>();
 		ArrayList<Integer> mostCommons = new ArrayList<Integer>();
+		ArrayList<String> sameCentralityIds = new ArrayList<String>();
 		// Read log file and extract statistics
 		// Now sentence by sentence, evaluate 
 		for (String sentence_id : evalMap.keySet()) {
@@ -115,6 +119,9 @@ public class ExtendedScorer extends Scorer {
 							if (eval_sense_key.equals(senseKeyMostCommon)) {
 								most_common = true;
 								sentenceMostCommon++;
+								if (sameCentralityIds.contains(term_id)) {
+									sameCentralityMostCommon++;
+								}
 							}
 							if (gold_sense_key.equals(senseKeyMostCommon)) {
 								sentenceGoldMostCommon++;
@@ -169,7 +176,9 @@ public class ExtendedScorer extends Scorer {
 						String time = line.split(" ")[1];
 						totalTimes.add(Duration.parse(time));
 					} else if (line.contains("[SAME CENTRALITIES]")) {
-						// TODO
+						String id = line.split(" ")[2];
+						sameCentralityIds.add(id);
+						sameCentralityDisambiguation++;
 					}
 				}				
 			} catch (FileNotFoundException e) {
@@ -193,6 +202,8 @@ public class ExtendedScorer extends Scorer {
 				+ "terms disambiguated with zero centrality => " + zeroCentralityTerms + "\n"
 				+ "correct most common terms zero centrality => " + zeroCentralityMostCommonCorrect + "\n"
 				+ "correct terms zero centrality => " + zeroCentralityCorrect + "\n"
+				+ "zero centrality most common bias => " + (float) zeroCentralityMostCommonTerms / zeroCentralityTerms + "\n"
+				+ "most common bias => " + (float) evalMostCommonTerms / evalTerms +  "\n"
 				+ "\n";
 		for (POS pos : POS.values()) {
 			String log = pos + ": total => " + totalPOS.get(pos) + " correct => " + correctPOS.get(pos) + "\n";
@@ -241,7 +252,6 @@ public class ExtendedScorer extends Scorer {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
 	}
 
 	/**
