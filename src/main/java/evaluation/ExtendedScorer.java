@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -171,10 +172,9 @@ public class ExtendedScorer extends Scorer {
 							tspTimes.add(d);
 						} else if (line.contains("[DFS]")) {
 							dfsTimes.add(d);
-						}
-					} else if (line.contains("[FINISHED]")) {
-						String time = line.split(" ")[1];
-						totalTimes.add(Duration.parse(time));
+						} else if (line.contains("[TOTAL]")) {
+							totalTimes.add(d);
+						} 
 					} else if (line.contains("[SAME CENTRALITIES]")) {
 						String id = line.split(" ")[2];
 						sameCentralityIds.add(id);
@@ -214,13 +214,43 @@ public class ExtendedScorer extends Scorer {
 			double prec = (double) correctPOS.get(pos) / totalPOS.get(pos);
 			precision += ";" + String.format("%.2f", prec*100);
 		}
-		
+		// Computing time for knowing bottlenecks
+		Instant now = Instant.now();
+		Instant now2 = Instant.now();
+		Duration zero = Duration.between(now, now2);
+		Duration total = Duration.between(now, now2);
+		Duration maxTSP = Duration.between(now, now2);
+		Duration maxDFS = Duration.between(now, now2);
+
+		System.out.println("---- Total ----");
+
+		for (Duration d : totalTimes) {
+			System.out.println(d);
+			total = total.plus(d);
+		}
+
+		System.out.println("---- TSP ----");
+		for (Duration d : tspTimes) {
+			System.out.println(d);
+			if (d.compareTo(maxTSP) > 0) {
+				maxTSP = d;
+			}
+		}
+		System.out.println("---- DFS ----");
+
+		for (Duration d : dfsTimes) {
+			System.out.println(d);
+			if (d.compareTo(maxDFS) > 0) {
+				maxDFS = d;
+			}
+		}
+
 		this.createCsvReportFile();
 		String content = "";
 		
 		try {
 			Double[] score = Scorer.score(gold, evaluation);
-			content += dataset + ";" + maxDepth + ";" + centralityMeasure + ";" + disambiguation + ";" + String.format("%.2f", score[0]*100) + ";" + String.format("%.2f", score[1]*100) + ";" + String.format("%.2f", score[2]*100) + precision + "\n";
+			content += dataset + ";" + maxDepth + ";" + centralityMeasure + ";" + disambiguation + ";" + String.format("%.2f", score[2]*100) + maxDFS + ";" + maxTSP + ";" + total + precision + "\n";
 			
 			FileWriter fileW = new FileWriter(Globals.csvReportFile, true);
 			fileW.write(content);
@@ -240,7 +270,7 @@ public class ExtendedScorer extends Scorer {
 			if (!file.exists()) {
 				file.createNewFile();
 				FileWriter fileW = new FileWriter(Globals.csvReportFile, true);
-				String headers = "Dataset;Max path length;Centrality;Disambiguation;Precision;Recall;F-Measure";
+				String headers = "Dataset;Max path length;Centrality;Disambiguation;F-Measure;max-dfs;max-tsp;total";
 				String posHeaders = "";
 				for (POS pos : POS.values()) {
 					posHeaders +=  ";" + pos;

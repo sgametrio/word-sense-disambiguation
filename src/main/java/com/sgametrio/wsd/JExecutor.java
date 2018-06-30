@@ -94,12 +94,18 @@ public class JExecutor {
 				cGraph.addVertex(n);
 			}
 			// Add auxiliary nodes to compute centrality
+			Instant beforeDFS = Instant.now();
 			this.addDFSNodes(cGraph, depth);
+			Instant afterDFS = Instant.now();
+			Duration between = Duration.between(beforeDFS, afterDFS);
+				
 			// End graphs build
 			// Run all possible configurations
 			for (String currentCentrality : Globals.centralities) {
 				dGraph.resetLog();
 				cGraph.resetLog();
+				cGraph.log(Globals.logStatistics, "[TIME][DFS] " + between);
+				dGraph.log(Globals.logStatistics, "[TIME][DFS] " + between);
 				// Use centrality to disambiguate senses
 				Instant beforeC = Instant.now();
 				this.computeCentrality(cGraph, currentCentrality);
