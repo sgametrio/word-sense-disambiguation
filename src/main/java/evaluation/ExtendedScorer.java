@@ -222,24 +222,21 @@ public class ExtendedScorer extends Scorer {
 		Duration maxTSP = Duration.between(now, now2);
 		Duration maxDFS = Duration.between(now, now2);
 
-		System.out.println("---- Total ----");
+		//System.out.println("---- Total ----");
 
 		for (Duration d : totalTimes) {
-			System.out.println(d);
 			total = total.plus(d);
 		}
 
-		System.out.println("---- TSP ----");
+		//System.out.println("---- TSP ----");
 		for (Duration d : tspTimes) {
-			System.out.println(d);
 			if (d.compareTo(maxTSP) > 0) {
 				maxTSP = d;
 			}
 		}
-		System.out.println("---- DFS ----");
 
+		//System.out.println("---- DFS ----");
 		for (Duration d : dfsTimes) {
-			System.out.println(d);
 			if (d.compareTo(maxDFS) > 0) {
 				maxDFS = d;
 			}
@@ -250,7 +247,7 @@ public class ExtendedScorer extends Scorer {
 		
 		try {
 			Double[] score = Scorer.score(gold, evaluation);
-			content += dataset + ";" + maxDepth + ";" + centralityMeasure + ";" + disambiguation + ";" + String.format("%.2f", score[2]*100) + maxDFS + ";" + maxTSP + ";" + total + precision + "\n";
+			content += dataset + ";" + maxDepth + ";" + centralityMeasure + ";" + disambiguation + ";" + String.format("%.2f", score[2]*100) + maxDFS + ";" + maxTSP + precision + "\n";
 			
 			FileWriter fileW = new FileWriter(Globals.csvReportFile, true);
 			fileW.write(content);
@@ -270,7 +267,7 @@ public class ExtendedScorer extends Scorer {
 			if (!file.exists()) {
 				file.createNewFile();
 				FileWriter fileW = new FileWriter(Globals.csvReportFile, true);
-				String headers = "Dataset;Max path length;Centrality;Disambiguation;F-Measure;max-dfs;max-tsp;total";
+				String headers = "Dataset;Max path length;Centrality;Disambiguation;F-Measure;max-dfs;max-tsp";
 				String posHeaders = "";
 				for (POS pos : POS.values()) {
 					posHeaders +=  ";" + pos;

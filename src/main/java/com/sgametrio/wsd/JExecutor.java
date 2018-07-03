@@ -43,6 +43,7 @@ public class JExecutor {
 	private WordnetAdapter wordnet = null;
 	//saving params
 	private final Object fileLock = new Object();
+	private final Object timingsLock = new Object();
 	private final Object graphLock = new Object();
 	//execution params
 	
@@ -83,7 +84,7 @@ public class JExecutor {
 		ArrayList<JNode> senses = this.getSensesFromInstances(input.instances);
 		
 		for (int depth = Globals.minDepth; depth <= Globals.maxDepth; depth++) {
-			
+
 			synchronized(this.graphLock) {
 				dGraph = new JGraph(input.sentence, input.sentenceId);
 				cGraph = new JGraph(input.sentence, input.sentenceId);
@@ -119,8 +120,6 @@ public class JExecutor {
 				String evalDFilename = filename + "_run-solver";
 				String cFilename = evalCFilename + "_" + cGraph.getSentenceId();
 				String dFilename = evalDFilename + "_" + dGraph.getSentenceId();
-				//dGraph.log(Globals.logInfo, dGraph.printCentrality());
-				//cGraph.log(Globals.logInfo, dGraph.printCentrality());
 				
 				// Disambiguation by centrality
 				Map<Integer, JNode> mapC = this.disambiguateByCentrality(cGraph, dGraph);
@@ -138,6 +137,16 @@ public class JExecutor {
 		}
 		Instant after = Instant.now();
 		Duration time = Duration.between(before, after);
+		synchronized(timingsLock) {
+			PrintWriter timings;
+			try {
+				timings = new PrintWriter(new FileWriter(Globals.logsPath + "timings.txt", true));
+				timings.write("[GRAPH " + input.sentenceId + "][FINISHED] Time: " + time + "\n");
+				timings.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}		
+		}	
 		System.out.println("[GRAPH " + input.sentenceId + "][FINISHED] Time: " + time);		
 	}
 	
