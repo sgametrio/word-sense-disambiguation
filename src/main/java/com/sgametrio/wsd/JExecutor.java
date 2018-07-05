@@ -66,43 +66,43 @@ public class JExecutor {
 	public void performDisambiguation(InputSentence input) {
 		Instant before = Instant.now();
 		// If there are no instances to be disambiguated, skip
-		int ids = 0;
-		for (InputInstance i : input.instances) {
-			if (i.id != null) {
-				ids++;
-			}
-		}
-		if (ids == 0)
-			return;
-		// Graphs build
-		ArrayList<InputInstance> selectedInstances = this.mySelectPos(input.instances);
-
-		input.instances.clear();
-		input.instances.addAll(selectedInstances);
-		JGraph dGraph = null;
-		JGraph cGraph = null;
-		ArrayList<JNode> senses = this.getSensesFromInstances(input.instances);
-		
 		for (int depth = Globals.minDepth; depth <= Globals.maxDepth; depth++) {
-
-			synchronized(this.graphLock) {
-				dGraph = new JGraph(input.sentence, input.sentenceId);
-				cGraph = new JGraph(input.sentence, input.sentenceId);
-			}
-			// Add disambiguation nodes to both graphs
-			for (JNode n : senses) {
-				dGraph.addVertex(n);
-				cGraph.addVertex(n);
-			}
-			// Add auxiliary nodes to compute centrality
-			Instant beforeDFS = Instant.now();
-			this.addDFSNodes(cGraph, depth);
-			Instant afterDFS = Instant.now();
-			Duration between = Duration.between(beforeDFS, afterDFS);
-				
-			// End graphs build
-			// Run all possible configurations
 			for (String currentCentrality : Globals.centralities) {
+				int ids = 0;
+				for (InputInstance i : input.instances) {
+					if (i.id != null) {
+						ids++;
+					}
+				}
+				if (ids == 0)
+					return;
+				// Graphs build
+				ArrayList<InputInstance> selectedInstances = this.mySelectPos(input.instances);
+
+				input.instances.clear();
+				input.instances.addAll(selectedInstances);
+				JGraph dGraph = null;
+				JGraph cGraph = null;
+				ArrayList<JNode> senses = this.getSensesFromInstances(input.instances);
+			
+				synchronized(this.graphLock) {
+					dGraph = new JGraph(input.sentence, input.sentenceId);
+					cGraph = new JGraph(input.sentence, input.sentenceId);
+				}
+				// Add disambiguation nodes to both graphs
+				for (JNode n : senses) {
+					dGraph.addVertex(n);
+					cGraph.addVertex(n);
+				}
+				// Add auxiliary nodes to compute centrality
+				Instant beforeDFS = Instant.now();
+				this.addDFSNodes(cGraph, depth);
+				Instant afterDFS = Instant.now();
+				Duration between = Duration.between(beforeDFS, afterDFS);
+					
+				// End graphs build
+				// Run all possible configurations
+			
 				dGraph.resetLog();
 				cGraph.resetLog();
 				cGraph.log(Globals.logStatistics, "[TIME][DFS] " + between);
